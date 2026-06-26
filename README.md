@@ -1,249 +1,110 @@
 # Audio to Rhythm Godot Kit
 
-一个给 agents 和产品后端复用的轻量中转工具：**用户上传音乐 → 输出可被游戏导入的音游关卡包**。
+把一首音乐变成可以放进你自己 Godot 游戏里的音游关卡。
 
-它不是最终游戏。Godot 项目只是预览/示例；正式默认输出是跨引擎 `level bundle`。
+这不是给你手动改代码看的工具。正确用法是：**把仓库、你的 Godot 项目、音乐文件交给 AI，让 AI 自动接入和验证。**
 
-## 快速开始：生成关卡包
+你不用理解脚本、配置、谱面文件，也不用自己写代码。
 
-```bash
-cd /path/to/audio-to-rhythm-godot-kit
-python -m pip install -r requirements.txt
+---
 
-# 生成一段无版权测试音频；实际产品里这里换成用户上传的 song.mp3
-python scripts/make_test_audio.py examples/input/test_song.wav --duration 30 --bpm 120
+## 你要怎么用？
 
-python scripts/create_rhythm_bundle.py examples/input/test_song.wav \
-  --difficulties easy,normal,hard \
-  --lanes 3 \
-  --keys A,S,D \
-  --target bundle \
-  --out dist/test_song_bundle
-```
+### 第一次：把音游系统接进你的游戏
 
-输出：
+把下面这段话发给 Codex / Claude Code / Cursor / Hermes 这类 AI 编程工具：
 
 ```text
-dist/test_song_bundle/
-  metadata.json
-  audio/
-    song.wav
-    original.wav
-  charts/
-    easy.chart.json
-    normal.chart.json
-    hard.chart.json
-  analysis/report.json
-  integration/
-    README.md
-    AI_GODOT_IMPORT_PROMPT.md
+这是我的 Godot 游戏项目：<填你的项目路径>
+这是音游关卡工具仓库：https://github.com/iwillwill-ALLWILL/audio-to-rhythm-godot-kit
+这是测试音乐：<填音乐文件路径>
+
+请你全程自动完成：
+1. 检查我的 Godot 项目结构。
+2. 把这个音游关卡系统接进我的游戏。
+3. 用这首测试音乐生成一个可玩的音乐关卡。
+4. 把音乐关卡接到游戏入口里。
+   我希望入口放在：<主菜单 / 关卡选择 / NPC 对话 / 地图触发器 / 先做一个测试按钮>
+5. 不要破坏我原来的游戏内容。
+6. 跑 Godot 验证，报错就继续修。
+7. 最后告诉我：改了哪些文件、从哪里进入音乐关卡、以后怎么继续加新歌。
 ```
 
-也可以打包 zip：
+AI 完成后，你的游戏里就会有第一个音乐关卡。
 
-```bash
-python scripts/create_rhythm_bundle.py song.mp3 \
-  --difficulties easy,normal,hard \
-  --lanes 3 \
-  --keys A,S,D \
-  --target bundle \
-  --out dist/song_bundle \
-  --zip
-```
+---
 
-## 难度参数
+## 以后怎么加新音乐？
 
-预设：
+第一次接好后，以后加歌更简单。直接把下面这段话发给 AI：
 
 ```text
-easy / normal / hard / expert
+这是我的 Godot 游戏项目：<填你的项目路径>
+这是新的音乐文件：<填音乐文件路径>
+歌名/关卡名：<填名字，或者让 AI 自己起>
+
+请你把这首歌做成新的音乐关卡，加入到我游戏已有的音游入口里。
+如果有多个难度，就默认生成 easy / normal / hard。
+完成后跑 Godot 验证，报错就继续修。
+最后告诉我新关卡从哪里进入。
 ```
 
-单难度：
+也就是说，以后你只需要继续给 AI 音乐文件。AI 会负责生成关卡、放进游戏、更新入口、验证能不能跑。
 
-```bash
-python scripts/create_rhythm_bundle.py song.mp3 --difficulty normal --lanes 3 --keys A,S,D --target bundle --out dist/song_bundle
-```
+---
 
-多难度：
+## AI 会帮你做什么？
 
-```bash
-python scripts/create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard --lanes 3 --keys A,S,D --target bundle --out dist/song_bundle
-```
+AI 应该自动完成这些事：
 
-自定义：
+- 看懂你的 Godot 项目结构；
+- 把音游系统放进你的游戏；
+- 把音乐变成可玩的音游关卡；
+- 接到主菜单、关卡选择、NPC、地图触发器或测试按钮；
+- 以后新增歌曲时继续追加新关卡；
+- 跑 Godot 检查有没有报错；
+- 告诉你改了什么、怎么进入、怎么继续加歌。
 
-```bash
-python scripts/create_rhythm_bundle.py song.mp3 \
-  --difficulty custom \
-  --lanes 3 \
-  --keys A,S,D \
-  --note-density 2.0 \
-  --min-gap 0.28 \
-  --note-speed 480 \
-  --perfect-window 0.07 \
-  --good-window 0.14 \
-  --target bundle \
-  --out dist/song_custom_bundle
-```
+---
 
-难度控制：note 密度、最小间隔、下落速度、判定窗口。当前产品布局固定为 3 键 `A/S/D`。
+## 你不需要做什么？
 
-## 输出目标
+你不需要：
 
-### 1. `bundle`：正式产品默认
+- 自己写代码；
+- 自己看谱面文件；
+- 自己研究 Godot 导入细节；
+- 自己复制一堆脚本；
+- 自己调参数。
 
-```bash
-python scripts/create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard --lanes 3 --keys A,S,D --target bundle --out dist/song_bundle
-```
+这些都交给 AI。
 
-只输出关卡包，用户自己的 Godot/Unity/自研游戏都能接。
+---
 
-### 2. `godot-addon`：给 Godot 用户直接导入
+## 当前玩法默认是什么？
 
-```bash
-python scripts/create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard --lanes 3 --keys A,S,D --target godot-addon --out dist/song_godot_addon
-```
-
-输出：
+默认是 3 键音游：
 
 ```text
-addons/rhythmkit/
-levels/<song_id>/
-project.godot                 # 可作为预览项目打开
-README_GODOT_IMPORT.md
+A / S / D
 ```
 
-用户复制这两个目录进自己的 Godot 项目：
+适合做轻量音乐关卡、节奏小游戏、做饭/动作/互动类小游戏里的音乐挑战。
 
-```text
-addons/rhythmkit/
-levels/<song_id>/
-```
+---
 
-然后：
+## 给 AI 看的详细说明
 
-```gdscript
-var view = preload("res://addons/rhythmkit/RhythmGameView.tscn").instantiate()
-add_child(view)
-view.load_bundle("res://levels/<song_id>", "normal")
-view.start_game()
-```
-
-### 3. `godot-project`：独立预览/QA
-
-```bash
-python scripts/create_rhythm_bundle.py song.mp3 --difficulty normal --lanes 3 --keys A,S,D --target godot-project --out dist/song_preview_project
-```
-
-输出完整 Godot 项目，用来试玩谱面，不是最终产品主输出。
-
-## 给用户自己的 Godot 项目怎么接？
-
-这套工具的正确用法是：**用户全程把任务交给 AI，AI 去检查 Godot 项目、复制 runtime、生成/复制关卡包、接菜单入口、运行 Godot 验证。用户不需要自己写 GDScript。**
-
-完整教程见：
+如果 AI 需要更详细的操作说明，让它看这个文件：
 
 ```text
 docs/AI_GODOT_USER_WORKFLOW.md
 ```
 
-### 第一次接入：让 AI 把音游 runtime 装进用户自己的游戏
-
-用户给 AI 三样东西：
-
-```text
-1. Godot 项目路径
-2. 一首测试音频，或已经生成好的 RhythmKit bundle
-3. 希望音乐关卡从哪里进入：主菜单 / 关卡选择 / NPC / 地图触发器 / debug 入口
-```
-
-AI 要做：
-
-```text
-1. 检查项目结构，不假设 scene/menu 名字
-2. 添加或复用 res://addons/rhythmkit/
-3. 把当前歌曲 bundle 放到 res://levels/<song_id>/
-4. 接入用户指定的入口
-5. 写 docs/rhythm_bundle_import.md，告诉后续 AI 怎么加歌
-6. 运行 Godot headless/console 验证并修错
-```
-
-每个 bundle 都会自动生成：
+如果 AI 是从生成好的关卡包开始接入，每个关卡包里也会自带一份给 AI 的接入提示词：
 
 ```text
 integration/AI_GODOT_IMPORT_PROMPT.md
 ```
 
-把这个 prompt 丢给 Codex / Claude Code / Cursor / Hermes，它就知道如何把该 bundle 接进现有 Godot 项目。
-
-### 以后增加音乐关卡：用户只给 AI 一个音频
-
-第一次接好 runtime 后，新增歌曲的模式是：
-
-```text
-用户给 AI 音频文件
-  -> AI 运行 create_rhythm_bundle.py 生成 bundle
-  -> AI 复制到 res://levels/<new_song_id>/
-  -> AI 更新关卡选择/入口
-  -> AI 运行 Godot 验证
-```
-
-也就是说以后不是重新做游戏，而是持续追加：
-
-```text
-res://levels/song_a/
-res://levels/song_b/
-res://levels/song_c/
-```
-
-通用 runtime 算法：
-
-```text
-now = audio_playback_time - chart.offset
-spawn note when note.time - now <= spawn_ahead
-on input lane:
-  nearest = nearest unhit note in same lane
-  delta = abs(nearest.time - now)
-  if delta <= perfect_window: Perfect
-  elif delta <= good_window: Good
-  else: Miss
-```
-
-## 当前依赖
-
-MVP 先不依赖 Basic Pitch / Demucs / Omnizart，避免安装门槛。
-
-当前用：
-
-```text
-ffmpeg + numpy
-```
-
-能力：
-
-```text
-BPM 检测
-onset 检测
-多难度 chart 生成
-Godot addon/runtime
-Godot preview project
-AI 接入提示词
-```
-
-后续可以继续加：
-
-```text
---mode melody    # Basic Pitch 转旋律音符
---keysounds      # MIDI/soundfont 生成按键音
---target web-preview
---target unity-package
-```
-
-## 详细产品设计
-
-见：
-
-```text
-docs/PRODUCT_DESIGN.md
-```
+你作为用户主要看本 README 就够了。

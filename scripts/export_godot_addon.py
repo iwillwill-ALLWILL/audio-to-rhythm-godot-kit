@@ -71,9 +71,11 @@ def export_godot_addon_package(bundle_dir: str | Path, out_dir: str | Path, *, s
 
     readme = f"""# Godot RhythmKit Import Package
 
-This folder can be opened as a preview Godot project, or copied into an existing Godot project.
+This folder is designed for AI-assisted import into an existing Godot game.
 
-## Preview
+It can also be opened directly as a preview Godot project.
+
+## Preview first
 
 Open this folder with Godot 4.6+ and run:
 
@@ -87,16 +89,24 @@ Preview scene:
 res://scenes/RhythmKitPreview.tscn
 ```
 
-## Import into an existing Godot project
+## AI-first import into the user's game
 
-Copy these folders into the target project:
+Give Codex / Claude Code / Cursor / Hermes access to the user's Godot project and paste:
 
 ```text
-addons/rhythmkit/
-levels/{song_id}/
+levels/{song_id}/integration/AI_GODOT_IMPORT_PROMPT.md
 ```
 
-Then instantiate:
+Tell the AI where the rhythm level should appear: main menu, level select, NPC, map trigger, or debug entry.
+
+The AI should copy these folders into the target Godot project:
+
+```text
+addons/rhythmkit/        # reusable runtime, usually installed once
+levels/{song_id}/        # this song's bundle
+```
+
+Then it should wire the user's chosen entry point to:
 
 ```gdscript
 var view = preload("res://addons/rhythmkit/RhythmGameView.tscn").instantiate()
@@ -105,11 +115,15 @@ view.load_bundle("res://levels/{song_id}", "{preview_difficulty}")
 view.start_game()
 ```
 
-For AI-assisted integration, use:
+## Adding more songs later
+
+After `addons/rhythmkit/` is installed once, future songs only need another bundle under:
 
 ```text
-levels/{song_id}/integration/AI_GODOT_IMPORT_PROMPT.md
+levels/<new_song_id>/
 ```
+
+Ask the AI to generate/copy the new bundle, update the same menu/level-select/trigger integration, and run Godot verification.
 """
     write_text(out_dir / "README_GODOT_IMPORT.md", readme)
     manifest = {

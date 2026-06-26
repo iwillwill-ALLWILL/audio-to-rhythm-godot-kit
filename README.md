@@ -140,22 +140,61 @@ python scripts/create_rhythm_bundle.py song.mp3 --difficulty normal --lanes 3 --
 
 ## 给用户自己的 Godot 项目怎么接？
 
-每个 bundle 都自动生成：
+这套工具的正确用法是：**用户全程把任务交给 AI，AI 去检查 Godot 项目、复制 runtime、生成/复制关卡包、接菜单入口、运行 Godot 验证。用户不需要自己写 GDScript。**
+
+完整教程见：
+
+```text
+docs/AI_GODOT_USER_WORKFLOW.md
+```
+
+### 第一次接入：让 AI 把音游 runtime 装进用户自己的游戏
+
+用户给 AI 三样东西：
+
+```text
+1. Godot 项目路径
+2. 一首测试音频，或已经生成好的 RhythmKit bundle
+3. 希望音乐关卡从哪里进入：主菜单 / 关卡选择 / NPC / 地图触发器 / debug 入口
+```
+
+AI 要做：
+
+```text
+1. 检查项目结构，不假设 scene/menu 名字
+2. 添加或复用 res://addons/rhythmkit/
+3. 把当前歌曲 bundle 放到 res://levels/<song_id>/
+4. 接入用户指定的入口
+5. 写 docs/rhythm_bundle_import.md，告诉后续 AI 怎么加歌
+6. 运行 Godot headless/console 验证并修错
+```
+
+每个 bundle 都会自动生成：
 
 ```text
 integration/AI_GODOT_IMPORT_PROMPT.md
 ```
 
-用户把这个 prompt 丢给 Codex / Claude Code / Cursor / Hermes，让 AI 在他自己的 Godot 项目里自动完成适配：
+把这个 prompt 丢给 Codex / Claude Code / Cursor / Hermes，它就知道如何把该 bundle 接进现有 Godot 项目。
+
+### 以后增加音乐关卡：用户只给 AI 一个音频
+
+第一次接好 runtime 后，新增歌曲的模式是：
 
 ```text
-1. 复制 bundle 到 res://levels/<song_id>/
-2. 添加/复用 res://addons/rhythmkit/
-3. 读取 metadata.json
-4. 选择 difficulty
-5. 加载 charts/*.chart.json 和 audio/song.wav
-6. 接到用户自己的菜单/玩法/场景
-7. 运行 Godot 验证并修错
+用户给 AI 音频文件
+  -> AI 运行 create_rhythm_bundle.py 生成 bundle
+  -> AI 复制到 res://levels/<new_song_id>/
+  -> AI 更新关卡选择/入口
+  -> AI 运行 Godot 验证
+```
+
+也就是说以后不是重新做游戏，而是持续追加：
+
+```text
+res://levels/song_a/
+res://levels/song_b/
+res://levels/song_c/
 ```
 
 通用 runtime 算法：

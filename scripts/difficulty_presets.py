@@ -4,6 +4,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, replace
 from typing import Any
 
+DEFAULT_LANES = 3
+
 
 @dataclass(frozen=True)
 class DifficultyPreset:
@@ -126,8 +128,8 @@ def get_preset(name: str) -> DifficultyPreset:
 
 
 def with_lane_count(preset: DifficultyPreset, lanes: int) -> DifficultyPreset:
-    if lanes < 1 or lanes > 8:
-        raise ValueError("lanes must be between 1 and 8")
+    if lanes != DEFAULT_LANES:
+        raise ValueError("This kit is fixed to 3 lanes for the A/S/D product layout")
     if preset.lanes == lanes:
         return preset
     return replace(preset, lanes=lanes)
@@ -145,8 +147,8 @@ def custom_preset(
     allow_doubles: bool = False,
     allow_holds: bool = False,
 ) -> DifficultyPreset:
-    if lanes < 1 or lanes > 8:
-        raise ValueError("custom lanes must be between 1 and 8")
+    if lanes != DEFAULT_LANES:
+        raise ValueError("custom lanes must be 3 for the A/S/D product layout")
     if note_density <= 0:
         raise ValueError("note_density must be positive notes/second")
     return DifficultyPreset(

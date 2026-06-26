@@ -15,10 +15,11 @@ from typing import Any
 import numpy as np
 
 DEFAULT_SR = 22050
+DEFAULT_LANES = 3
 DEFAULT_KEYS = ["A", "S", "D"]
 THEME_LANES = {
-    "cooking": ["CUT", "STIR", "FIRE", "SEASON", "SERVE", "WASH"],
-    "generic": ["LANE 1", "LANE 2", "LANE 3", "LANE 4", "LANE 5", "LANE 6"],
+    "cooking": ["CUT", "STIR", "FIRE"],
+    "generic": ["LANE 1", "LANE 2", "LANE 3"],
 }
 
 
@@ -36,6 +37,15 @@ def parse_key_names(raw: str | list[str] | tuple[str, ...] | None) -> list[str]:
     else:
         keys = [str(part).strip().upper() for part in raw if str(part).strip()]
     return keys or list(DEFAULT_KEYS)
+
+
+def validate_layout(lanes: int, keys: str | list[str] | tuple[str, ...] | None = None) -> list[str]:
+    key_names = parse_key_names(keys)
+    if lanes != DEFAULT_LANES:
+        raise ValueError(f"This kit is fixed to {DEFAULT_LANES} lanes for the A/S/D product layout; got {lanes}")
+    if key_names != DEFAULT_KEYS:
+        raise ValueError(f"This kit is fixed to keys {','.join(DEFAULT_KEYS)}; got {','.join(key_names)}")
+    return key_names
 
 
 def find_ffmpeg() -> str:
@@ -262,7 +272,7 @@ def lane_from_centroid(centroid_hz: float, lane_count: int, fallback_index: int)
 
 def make_lanes(theme: str, lanes: int, keys: list[str] | tuple[str, ...] | None = None) -> list[dict[str, Any]]:
     names = THEME_LANES.get(theme, THEME_LANES["generic"])
-    key_names = parse_key_names(list(keys) if keys is not None else None)
+    key_names = validate_layout(lanes, keys)
     out = []
     for i in range(lanes):
         out.append({"id": i, "name": names[i] if i < len(names) else f"LANE {i+1}", "key": key_names[i] if i < len(key_names) else str(i + 1)})
@@ -280,6 +290,7 @@ def generate_chart(
     min_gap_s: float = 0.15,
     sr: int = DEFAULT_SR,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
+    keys = validate_layout(lanes, keys)
     audio, sr = decode_audio(audio_path, sr=sr)
     duration = len(audio) / sr
     features = extract_features(audio, sr)
@@ -360,8 +371,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--chart", default="chart.json")
     ap.add_argument("--report", default="report.json")
     ap.add_argument("--theme", default="cooking")
-    ap.add_argument("--lanes", type=int, default=3)
-    ap.add_argument("--keys", default=",".join(DEFAULT_KEYS), help="Comma-separated lane keys, e.g. A,S,D")
+    ap.add_argument("--lanes", type=int, default=3, help="Fixed product layout: 3 lanes")
+    ap.add_argument("--keys", default=",".join(DEFAULT_KEYS), help="Fixed product keys: A,S,D")
     ap.add_argument("--max-notes", type=int, default=260)
     ap.add_argument("--min-gap", type=float, default=0.15)
     args = ap.parse_args(argv)

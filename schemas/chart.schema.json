@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local/audio-to-rhythm-godot-kit/chart.schema.json",
-  "title": "RhythmKit Chart v1",
+  "title": "RhythmKit Chart v1 - 3-key ASD layout",
   "type": "object",
   "required": ["schema", "song_id", "title", "audio", "duration", "bpm", "difficulty", "lanes", "notes"],
   "properties": {
@@ -21,7 +21,7 @@
       "properties": {
         "name": {"type": "string"},
         "rating": {"type": "integer"},
-        "lanes": {"type": "integer", "minimum": 1},
+        "lanes": {"const": 3},
         "notes_per_30s": {"type": "integer", "minimum": 1},
         "min_gap": {"type": "number", "minimum": 0},
         "note_speed": {"type": "number", "minimum": 1},
@@ -33,14 +33,15 @@
     },
     "lanes": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 3,
+      "maxItems": 3,
       "items": {
         "type": "object",
-        "required": ["id", "name"],
+        "required": ["id", "name", "default_key"],
         "properties": {
-          "id": {"type": "integer", "minimum": 0},
+          "id": {"type": "integer", "enum": [0, 1, 2]},
           "name": {"type": "string"},
-          "default_key": {"type": "string"}
+          "default_key": {"type": "string", "enum": ["A", "S", "D"]}
         }
       }
     },
@@ -52,7 +53,7 @@
         "properties": {
           "id": {"type": "integer", "minimum": 1},
           "time": {"type": "number", "minimum": 0},
-          "lane": {"type": "integer", "minimum": 0},
+          "lane": {"type": "integer", "enum": [0, 1, 2]},
           "type": {"enum": ["tap", "hold"]},
           "duration": {"type": "number", "minimum": 0},
           "source": {"type": "string"},

@@ -87,7 +87,7 @@ python scripts/create_rhythm_bundle.py song.mp3 \
   --out dist/song_custom_bundle
 ```
 
-难度控制：轨道数、按键映射、note 密度、最小间隔、下落速度、判定窗口。当前默认是 3 键 `A/S/D`。
+难度控制：note 密度、最小间隔、下落速度、判定窗口。当前产品布局固定为 3 键 `A/S/D`。
 
 ## 输出目标
 

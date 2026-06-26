@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local/audio-to-rhythm-godot-kit/bundle.schema.json",
-  "title": "RhythmKit Bundle v1",
+  "title": "RhythmKit Bundle v1 - 3-key ASD layout",
   "type": "object",
-  "required": ["schema", "song_id", "title", "audio", "duration", "bpm", "charts"],
+  "required": ["schema", "song_id", "title", "audio", "duration", "bpm", "theme", "layout", "charts"],
   "properties": {
     "schema": {"const": "com.rhythmkit.bundle.v1"},
     "generator": {"type": "string"},
@@ -16,6 +16,23 @@
     "duration": {"type": "number", "minimum": 0},
     "bpm": {"type": "number", "minimum": 1},
     "theme": {"type": "string"},
+    "layout": {
+      "type": "object",
+      "required": ["lanes", "keys"],
+      "properties": {
+        "lanes": {"const": 3},
+        "keys": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "prefixItems": [
+            {"const": "A"},
+            {"const": "S"},
+            {"const": "D"}
+          ]
+        }
+      }
+    },
     "charts": {
       "type": "object",
       "minProperties": 1,

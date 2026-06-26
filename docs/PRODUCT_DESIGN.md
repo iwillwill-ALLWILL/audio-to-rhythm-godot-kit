@@ -62,9 +62,9 @@ Recommended UI fields:
 Audio: song.mp3 / wav / m4a / flac
 Difficulties: Easy / Normal / Hard / Expert / Custom
 Output: Bundle / Godot Addon / Godot Preview Project / Web Preview
-Theme tags: cooking / generic / custom lane names
-Lane count: 3 by default, or explicit
-Keys: A/S/D by default, or explicit
+Theme tags: cooking / generic
+Lane count: fixed 3
+Keys: fixed A/S/D
 Advanced: note density, min gap, speed, judgement windows, allow holds/doubles
 ```
 

@@ -10,7 +10,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from analyze_audio import DEFAULT_KEYS, generate_chart, parse_key_names  # noqa: E402
+from analyze_audio import DEFAULT_KEYS, generate_chart, validate_layout  # noqa: E402
 from export_godot import export_godot_project  # noqa: E402
 
 
@@ -19,8 +19,8 @@ def main() -> int:
     ap.add_argument("audio", help="Input audio file, any ffmpeg-supported format")
     ap.add_argument("--out", required=True, help="Output Godot project directory")
     ap.add_argument("--theme", default="cooking", choices=["cooking", "generic"])
-    ap.add_argument("--lanes", type=int, default=3)
-    ap.add_argument("--keys", default=",".join(DEFAULT_KEYS), help="Comma-separated lane keys, e.g. A,S,D")
+    ap.add_argument("--lanes", type=int, default=3, help="Fixed product layout: 3 lanes")
+    ap.add_argument("--keys", default=",".join(DEFAULT_KEYS), help="Fixed product keys: A,S,D")
     ap.add_argument("--title", default=None)
     ap.add_argument("--max-notes", type=int, default=260)
     ap.add_argument("--min-gap", type=float, default=0.15)
@@ -36,7 +36,7 @@ def main() -> int:
         title=args.title or audio.stem,
         theme=args.theme,
         lanes=args.lanes,
-        keys=parse_key_names(args.keys),
+        keys=validate_layout(args.lanes, args.keys),
         max_notes=args.max_notes,
         min_gap_s=args.min_gap,
     )

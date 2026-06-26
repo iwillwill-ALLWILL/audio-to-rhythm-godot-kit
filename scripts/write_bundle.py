@@ -844,15 +844,39 @@ script = ExtResource("1")
 '''
 
 
+def rhythm_game_view_scene(default_song_id: str | None = None, default_difficulty: str = "normal") -> str:
+    if not default_song_id:
+        return RHYTHM_GAME_VIEW_TSCN
+    return RHYTHM_GAME_VIEW_TSCN.replace(
+        'script = ExtResource("1")\n',
+        'script = ExtResource("1")\n'
+        f'bundle_path = "res://levels/{default_song_id}"\n'
+        f'difficulty = "{default_difficulty}"\n'
+        'auto_start = true\n',
+    )
+
+
+def rhythm_preview_scene(song_id: str, default_difficulty: str) -> str:
+    return f'''[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://addons/rhythmkit/RhythmGameView.tscn" id="1"]
+
+[node name="RhythmKitPreview" instance=ExtResource("1")]
+bundle_path = "res://levels/{song_id}"
+difficulty = "{default_difficulty}"
+auto_start = true
+'''
+
+
 def write_godot_addon(root_dir: Path, *, default_song_id: str | None = None, default_difficulty: str = "normal") -> None:
     addon = root_dir / "addons" / "rhythmkit"
     write_text(addon / "RhythmBundleLoader.gd", RHYTHM_BUNDLE_LOADER_GD)
     view_gd = RHYTHM_GAME_VIEW_GD
-    if default_song_id:
-        view_gd = view_gd.replace('res://levels/example_song', f'res://levels/{default_song_id}')
     view_gd = view_gd.replace('@export var difficulty: String = "normal"', f'@export var difficulty: String = "{default_difficulty}"')
     write_text(addon / "RhythmGameView.gd", view_gd)
-    write_text(addon / "RhythmGameView.tscn", RHYTHM_GAME_VIEW_TSCN)
+    write_text(addon / "RhythmGameView.tscn", rhythm_game_view_scene(default_song_id, default_difficulty))
+    if default_song_id:
+        write_text(root_dir / "scenes" / "RhythmKitPreview.tscn", rhythm_preview_scene(default_song_id, default_difficulty))
     write_text(
         addon / "README.md",
         """# RhythmKit Godot Runtime

@@ -77,7 +77,7 @@ Difficulties: `{diff_list}`
 Open this folder as a Godot 4 project and run it. The default scene is:
 
 ```text
-res://addons/rhythmkit/RhythmGameView.tscn
+res://scenes/RhythmKitPreview.tscn
 ```
 
 ## AI-first import into an existing Godot project
@@ -170,7 +170,7 @@ def main() -> int:
         if any(p.name == "normal" for p in presets):
             default_difficulty = "normal"
         write_godot_addon(root, default_song_id=song_id, default_difficulty=default_difficulty)
-        write_project_godot(root, f"{song_id}_rhythm_preview", "res://addons/rhythmkit/RhythmGameView.tscn")
+        write_project_godot(root, f"{song_id}_rhythm_preview", "res://scenes/RhythmKitPreview.tscn")
         write_target_readme(root, song_id=song_id, target=args.target, difficulties=[p.name for p in presets])
         target_info = {
             "target": args.target,

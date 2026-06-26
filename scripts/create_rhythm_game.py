@@ -24,6 +24,11 @@ def main() -> int:
     ap.add_argument("--title", default=None)
     ap.add_argument("--max-notes", type=int, default=260)
     ap.add_argument("--min-gap", type=float, default=0.15)
+    ap.add_argument("--dynamic-density", type=float, default=0.55)
+    ap.add_argument("--allow-doubles", action="store_true")
+    ap.add_argument("--allow-holds", action="store_true")
+    ap.add_argument("--double-rate", type=float, default=0.08)
+    ap.add_argument("--hold-rate", type=float, default=0.10)
     args = ap.parse_args()
 
     audio = Path(args.audio).resolve()
@@ -39,6 +44,11 @@ def main() -> int:
         keys=validate_layout(args.lanes, args.keys),
         max_notes=args.max_notes,
         min_gap_s=args.min_gap,
+        dynamic_density=args.dynamic_density,
+        allow_doubles=args.allow_doubles,
+        allow_holds=args.allow_holds,
+        double_rate=args.double_rate,
+        hold_rate=args.hold_rate,
     )
     raw_chart_path = build_dir / "chart.raw.json"
     raw_report_path = build_dir / "analysis_report.json"

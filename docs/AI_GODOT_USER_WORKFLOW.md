@@ -65,12 +65,13 @@ AI 还要把它接到你的游戏入口，例如：
    res://levels/<song_id>/
 4. 读取 res://levels/<song_id>/metadata.json，根据 metadata.charts 支持 easy/normal/hard 等难度。
 5. 加载 charts/*.chart.json 和 audio/song.wav。
-6. 把音游入口接到我的游戏指定位置。如果入口不明确，先创建一个可运行的 debug scene 或菜单按钮。
-7. 保持低侵入：不要破坏我原来的玩法、场景、存档、输入设置；必要改动前先说明。
-8. 写一份项目内文档：
+6. 尊重用户的玩法手感要求：更休闲/更难、长按、同时按键、命中反馈、角色/地图风格。
+7. 把音游入口接到我的游戏指定位置。如果入口不明确，先创建一个可运行的 debug scene 或菜单按钮。
+8. 保持低侵入：不要破坏我原来的玩法、场景、存档、输入设置；必要改动前先说明。
+9. 写一份项目内文档：
    docs/rhythm_bundle_import.md
    说明以后怎么让 AI 添加新的音乐关卡。
-9. 运行 Godot headless/console 验证没有脚本错误。如果有报错，继续修到通过。
+10. 运行 Godot headless/console 验证没有脚本错误。如果有报错，继续修到通过。
 
 固定规则：
 - 当前产品固定 3 键：A / S / D。
@@ -109,7 +110,7 @@ AI 还要把它接到你的游戏入口，例如：
 4. 确认 metadata.json、audio/song.wav、charts/*.chart.json 存在。
 5. 更新我的游戏入口，让玩家能选择/进入这首新歌。
 6. 运行 Godot headless/console 验证没有脚本错误。
-7. 如果谱面太密/太稀，调整 note-density/min-gap 后重新生成。
+7. 如果谱面太密/太稀，或用户想要更多/更少长按和同时按键，调整难度/手感参数后重新生成。
 
 完成后告诉我：
 - 新增的 song_id；
@@ -153,7 +154,7 @@ load metadata.json
   -> metadata.charts[difficulty]
   -> charts/<difficulty>.chart.json
   -> metadata.audio = audio/song.wav
-  -> play audio and render notes by note.time / note.lane / note.type
+  -> play audio and render notes by note.time / note.lane / note.type / note.duration
 ```
 
 ## 当前固定谱面契约
@@ -164,6 +165,9 @@ lanes: 0 / 1 / 2
 lane 0 -> A
 lane 1 -> S
 lane 2 -> D
+tap: 单次按键
+hold: 长按，使用 note.duration
+同时按键: 多个 note 使用相同 note.time、不同 lane
 ```
 
 ---

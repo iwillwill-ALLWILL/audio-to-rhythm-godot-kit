@@ -43,6 +43,12 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--rating", type=int, default=5)
     ap.add_argument("--allow-doubles", action="store_true")
     ap.add_argument("--allow-holds", action="store_true")
+    ap.add_argument("--dynamic-density", type=float, default=0.55)
+    ap.add_argument("--section-seconds", type=float, default=4.0)
+    ap.add_argument("--double-rate", type=float, default=0.08)
+    ap.add_argument("--hold-rate", type=float, default=0.10)
+    ap.add_argument("--hold-min", type=float, default=0.35)
+    ap.add_argument("--hold-max", type=float, default=0.9)
     return ap.parse_args()
 
 

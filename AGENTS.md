@@ -63,6 +63,7 @@ python scripts/create_rhythm_game.py path/to/song.mp3 --theme cooking --lanes 3 
 - Treat `metadata.json + charts/*.chart.json + audio/song.wav` as the core product contract.
 - Godot preview projects are demos/verification artifacts, not the main product output.
 - Difficulty is a first-class parameter. Use `scripts/difficulty_presets.py`; do not hard-code one difficulty.
+- Handfeel is first-class too: difficulty presets control dynamic density, simultaneous notes, and hold-note rates.
 - Do not bake game-specific art into the chart. Host games own visuals/UI/scoring flavor.
 - Every bundle must include `integration/AI_GODOT_IMPORT_PROMPT.md` so users can hand integration to an AI coding agent.
 - Prefer optional dependencies. MVP must work with Python + numpy + ffmpeg only.
@@ -71,9 +72,10 @@ python scripts/create_rhythm_game.py path/to/song.mp3 --theme cooking --lanes 3 
 
 ## Current MVP
 
-- Audio analysis: ffmpeg decode -> numpy energy/spectral-flux onset detection -> BPM estimate -> chart notes.
+- Audio analysis: ffmpeg/PyAV/PCM-WAV decode -> numpy energy/spectral-flux onset detection -> BPM estimate -> chart notes.
+- Handfeel generation: dynamic section density, simultaneous A/S/D notes, and hold notes tied to difficulty presets.
 - Multi-difficulty generation: easy/normal/hard/expert/custom presets.
 - Bundle writer: portable audio + metadata + charts + integration docs.
-- Godot addon: `addons/rhythmkit` loader/player that can be copied into a user's project.
+- Godot addon: `addons/rhythmkit` loader/player with tap/hold rendering and judgement that can be copied into a user's project.
 - Godot project preview: standalone player for quick QA.
 - Theme: `cooking` maps the default 3-key layout to CUT/STIR/FIRE on A/S/D.

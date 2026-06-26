@@ -65,7 +65,7 @@ Output: Bundle / Godot Addon / Godot Preview Project / Web Preview
 Theme tags: cooking / generic
 Lane count: fixed 3
 Keys: fixed A/S/D
-Advanced: note density, min gap, speed, judgement windows, allow holds/doubles
+Advanced: note density, dynamic density, min gap, speed, judgement windows, hold notes, simultaneous notes
 ```
 
 ## Difficulty Must Be a First-Class Parameter
@@ -74,12 +74,12 @@ Difficulty is not an afterthought. It controls chart generation and runtime feel
 
 ### Preset Table
 
-| Difficulty | Lanes | Notes / 30s | Min gap | Note speed | Perfect | Good | Doubles | Holds |
-|---|---:|---:|---:|---:|---:|---:|---|---|
-| easy | 3 | 30-50 | 0.38-0.45s | 360 | 0.080s | 0.160s | no | no |
-| normal | 3 | 55-90 | 0.24-0.32s | 520 | 0.060s | 0.120s | rare | optional |
-| hard | 3 | 90-140 | 0.14-0.22s | 650 | 0.045s | 0.090s | yes | yes |
-| expert | 3 | 130-220 | 0.08-0.14s | 780 | 0.035s | 0.070s | yes | yes |
+| Difficulty | Lanes | Notes / 30s | Min gap | Note speed | Perfect | Good | Dynamic density | Double rate | Hold rate |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| easy | 3 | 30-50 | 0.38-0.45s | 360 | 0.080s | 0.160s | low | 0% | 0% |
+| normal | 3 | 55-90 | 0.24-0.32s | 520 | 0.060s | 0.120s | medium | rare | light |
+| hard | 3 | 90-140 | 0.14-0.22s | 650 | 0.045s | 0.090s | high | common | common |
+| expert | 3 | 130-220 | 0.08-0.14s | 780 | 0.035s | 0.070s | very high | frequent | frequent |
 
 The actual note cap should scale by song duration:
 
@@ -143,7 +143,10 @@ Each chart file should be engine-neutral and self-contained except for audio pat
     "lanes": 3,
     "note_speed": 520,
     "perfect_window": 0.06,
-    "good_window": 0.12
+    "good_window": 0.12,
+    "dynamic_density": 0.45,
+    "double_rate": 0.04,
+    "hold_rate": 0.08
   },
   "lanes": [
     {"id": 0, "name": "CUT", "default_key": "A"},
@@ -152,7 +155,8 @@ Each chart file should be engine-neutral and self-contained except for audio pat
   ],
   "notes": [
     {"id": 1, "time": 0.7663, "lane": 0, "type": "tap", "source": "onset", "confidence": 0.82},
-    {"id": 2, "time": 1.3003, "lane": 1, "type": "tap", "source": "beat", "confidence": 0.74}
+    {"id": 2, "time": 1.3003, "lane": 1, "type": "hold", "duration": 0.55, "source": "sustain_hold", "confidence": 0.74},
+    {"id": 3, "time": 1.3003, "lane": 2, "type": "tap", "source": "accent_double", "confidence": 0.74}
   ]
 }
 ```
@@ -162,6 +166,8 @@ Important rules:
 - `time` is seconds from audio start after offset correction.
 - Lanes are integer indices; games can render them however they want.
 - Difficulty/rendering parameters live in `difficulty`, so host games can choose to respect or override them.
+- `hold` notes require `duration`; simultaneous notes are represented by multiple notes with the same `time` on different lanes.
+- Density should not be flat across the whole song. High-energy sections should receive more notes, quiet sections fewer notes.
 - Do not bake Godot/Unity node names into the chart.
 
 ## metadata.json Contract
@@ -181,7 +187,7 @@ Important rules:
     "hard": "charts/hard.chart.json"
   },
   "generated_by": "audio-to-rhythm-godot-kit",
-  "generator_version": "0.2.0"
+  "generator_version": "0.3.0"
 }
 ```
 
@@ -206,7 +212,7 @@ res://levels/never_gonna_give_you_up/
 3. Let the player select a chart difficulty.
 4. Load the selected chart JSON.
 5. Play the audio with `AudioStreamPlayer`.
-6. Spawn/render notes according to `note.time`, `note.lane`, and `note.type`.
+6. Spawn/render notes according to `note.time`, `note.lane`, `note.type`, and `note.duration` for holds.
 
 Minimal GDScript loader pattern:
 

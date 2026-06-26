@@ -241,6 +241,154 @@ def estimate_bpm(env: np.ndarray, sr: int, hop: int, min_bpm: float = 70.0, max_
     return round(float(bpm), 2)
 
 
+def select_peaks_by_dynamic_density(
+    peaks: list[int],
+    env: np.ndarray,
+    times: np.ndarray,
+    *,
+    max_notes: int,
+    section_seconds: float = 4.0,
+    dynamic_density: float = 0.55,
+) -> list[int]:
+    """Select peaks with musical density changes instead of flat whole-song thinning.
+
+    High-energy sections receive a larger quota, quiet sections keep fewer notes. The
+    result stays sorted by time and deterministic so generated charts are stable.
+    """
+    if max_notes <= 0 or not peaks:
+        return []
+    peaks = sorted(set(int(p) for p in peaks if 0 <= int(p) < len(env) and int(p) < len(times)))
+    if len(peaks) <= max_notes:
+        return peaks
+
+    dynamic_density = float(np.clip(dynamic_density, 0.0, 1.0))
+    section_seconds = max(0.5, float(section_seconds))
+    if dynamic_density <= 1e-6:
+        return sorted(sorted(peaks, key=lambda i: float(env[i]), reverse=True)[:max_notes])
+
+    sections: dict[int, list[int]] = {}
+    for idx in peaks:
+        section = int(float(times[idx]) // section_seconds)
+        sections.setdefault(section, []).append(idx)
+
+    ordered_sections = sorted(sections)
+    strengths = np.array([float(np.mean([env[i] for i in sections[s]])) for s in ordered_sections], dtype=np.float32)
+    lo = float(np.min(strengths))
+    hi = float(np.max(strengths))
+    if hi - lo < 1e-6:
+        norm = np.ones_like(strengths) * 0.5
+    else:
+        norm = (strengths - lo) / (hi - lo)
+
+    # Keep a small base quota everywhere, then push extra notes into energetic parts.
+    weights = (1.0 - dynamic_density) + dynamic_density * (0.20 + norm * 1.80)
+    weights = np.maximum(weights, 0.05)
+    raw_quotas = weights / float(np.sum(weights)) * float(max_notes)
+    quotas = np.floor(raw_quotas).astype(int)
+
+    for i, section in enumerate(ordered_sections):
+        quotas[i] = min(int(quotas[i]), len(sections[section]))
+
+    selected: set[int] = set()
+    for section, quota in zip(ordered_sections, quotas):
+        if quota <= 0:
+            continue
+        ranked = sorted(sections[section], key=lambda i: float(env[i]), reverse=True)
+        selected.update(ranked[: int(quota)])
+
+    if len(selected) < max_notes:
+        remaining = [p for p in peaks if p not in selected]
+        remaining_ranked = sorted(remaining, key=lambda i: float(env[i]), reverse=True)
+        selected.update(remaining_ranked[: max_notes - len(selected)])
+    elif len(selected) > max_notes:
+        selected = set(sorted(selected, key=lambda i: float(env[i]), reverse=True)[:max_notes])
+
+    return sorted(selected)
+
+
+def _deterministic_gate(index: int, rate: float) -> bool:
+    if rate <= 0.0:
+        return False
+    rate = min(1.0, max(0.0, float(rate)))
+    stride = max(1, int(round(1.0 / rate)))
+    return index % stride == 0
+
+
+def apply_playability_modifiers(
+    notes: list[dict[str, Any]],
+    *,
+    lane_count: int,
+    allow_doubles: bool,
+    allow_holds: bool,
+    double_rate: float = 0.0,
+    hold_rate: float = 0.0,
+    hold_min: float = 0.35,
+    hold_max: float = 0.9,
+    max_notes: int | None = None,
+    min_gap_s: float = 0.15,
+) -> list[dict[str, Any]]:
+    """Add common rhythm-game patterns: long holds and simultaneous keys.
+
+    The function is deterministic, keeps lanes valid, and respects max_notes so
+    difficulty presets can combine density with doubles/holds predictably.
+    """
+    lane_count = max(1, int(lane_count))
+    out = [dict(n) for n in sorted(notes, key=lambda n: (float(n.get("time", 0.0)), int(n.get("lane", 0))))]
+    if not out:
+        return out
+
+    hold_min = max(0.05, float(hold_min))
+    hold_max = max(hold_min, float(hold_max))
+    min_gap_s = max(0.0, float(min_gap_s))
+
+    if allow_holds and hold_rate > 0.0:
+        hold_budget = max(1, int(round(len(out) * min(1.0, max(0.0, float(hold_rate))))))
+        by_lane_times: dict[int, list[float]] = {}
+        for note in out:
+            by_lane_times.setdefault(int(note.get("lane", 0)) % lane_count, []).append(float(note.get("time", 0.0)))
+        candidates: list[tuple[float, int, float, dict[str, Any]]] = []
+        for seq, note in enumerate(out):
+            lane = int(note.get("lane", 0)) % lane_count
+            t = float(note.get("time", 0.0))
+            next_same = next((x for x in by_lane_times.get(lane, []) if x > t + min_gap_s), None)
+            room = hold_max if next_same is None else max(0.0, next_same - t - min_gap_s)
+            if room < hold_min:
+                continue
+            confidence = float(note.get("confidence", 0.0))
+            # Prefer stronger musical accents, then spread ties by original order.
+            candidates.append((confidence, seq, room, note))
+        for _, _, room, note in sorted(candidates, key=lambda item: (-item[0], item[1]))[:hold_budget]:
+            note["type"] = "hold"
+            note["duration"] = round(min(hold_max, room), 4)
+            note["source"] = "sustain_hold"
+
+    if allow_doubles and double_rate > 0.0:
+        limit = max_notes if max_notes is not None else int(round(len(out) * (1.0 + double_rate)))
+        limit = max(len(out), int(limit))
+        existing = {(round(float(n.get("time", 0.0)), 4), int(n.get("lane", 0)) % lane_count) for n in out}
+        additions: list[dict[str, Any]] = []
+        for seq, note in enumerate(out):
+            if len(out) + len(additions) >= limit:
+                break
+            if not _deterministic_gate(seq + 1, double_rate):
+                continue
+            t = round(float(note.get("time", 0.0)), 4)
+            lane = int(note.get("lane", 0)) % lane_count
+            alt_lane = (lane + (1 if seq % 2 == 0 else 2)) % lane_count
+            if (t, alt_lane) in existing:
+                continue
+            new_note = dict(note)
+            new_note["lane"] = alt_lane
+            new_note["type"] = "tap"
+            new_note.pop("duration", None)
+            new_note["source"] = "accent_double"
+            additions.append(new_note)
+            existing.add((t, alt_lane))
+        out.extend(additions)
+
+    return sorted(out, key=lambda n: (float(n.get("time", 0.0)), int(n.get("lane", 0))))
+
+
 def lane_from_centroid(centroid_hz: float, lane_count: int, fallback_index: int) -> int:
     """Map an onset to a lane.
 
@@ -288,6 +436,14 @@ def generate_chart(
     keys: list[str] | tuple[str, ...] | None = None,
     max_notes: int = 260,
     min_gap_s: float = 0.15,
+    dynamic_density: float = 0.55,
+    section_seconds: float = 4.0,
+    allow_doubles: bool = False,
+    allow_holds: bool = False,
+    double_rate: float = 0.0,
+    hold_rate: float = 0.0,
+    hold_min: float = 0.35,
+    hold_max: float = 0.9,
     sr: int = DEFAULT_SR,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     keys = validate_layout(lanes, keys)
@@ -306,10 +462,18 @@ def generate_chart(
         fallback_times = np.arange(start, max(start, duration - 0.25), beat_interval)
         peaks = [min(env.size - 1, max(0, int(round(t * sr / hop)))) for t in fallback_times]
 
-    # Density control: keep strongest peaks if too many.
-    if len(peaks) > max_notes:
-        ranked = sorted(peaks, key=lambda i: float(env[i]), reverse=True)[:max_notes]
-        peaks = sorted(ranked)
+    # Density control: keep energetic sections busier and quiet sections calmer.
+    base_max_notes = max_notes
+    if allow_doubles and double_rate > 0.0:
+        base_max_notes = max(1, int(round(max_notes / (1.0 + min(0.5, double_rate) * 0.85))))
+    peaks = select_peaks_by_dynamic_density(
+        peaks,
+        env,
+        features["times"],
+        max_notes=base_max_notes,
+        section_seconds=section_seconds,
+        dynamic_density=dynamic_density,
+    )
 
     centroid = features["centroid"]
     times = features["times"]
@@ -341,6 +505,18 @@ def generate_chart(
             }
         )
 
+    notes = apply_playability_modifiers(
+        notes,
+        lane_count=lanes,
+        allow_doubles=allow_doubles,
+        allow_holds=allow_holds,
+        double_rate=double_rate,
+        hold_rate=hold_rate,
+        hold_min=hold_min,
+        hold_max=hold_max,
+        max_notes=max_notes,
+        min_gap_s=min_gap_s,
+    )
     notes.sort(key=lambda n: (n["time"], n["lane"]))
     chart = {
         "version": "0.1.0",
@@ -359,7 +535,15 @@ def generate_chart(
         "sample_rate": sr,
         "bpm": bpm,
         "notes": len(notes),
+        "holds": sum(1 for n in notes if n.get("type") == "hold"),
+        "doubles": sum(1 for n in notes if n.get("source") == "accent_double"),
         "mode": "onset_mvp",
+        "feel": {
+            "dynamic_density": dynamic_density,
+            "section_seconds": section_seconds,
+            "double_rate": double_rate if allow_doubles else 0.0,
+            "hold_rate": hold_rate if allow_holds else 0.0,
+        },
         "dependencies": {"ffmpeg": find_ffmpeg_optional(), "numpy": np.__version__},
     }
     return chart, report
@@ -375,6 +559,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--keys", default=",".join(DEFAULT_KEYS), help="Fixed product keys: A,S,D")
     ap.add_argument("--max-notes", type=int, default=260)
     ap.add_argument("--min-gap", type=float, default=0.15)
+    ap.add_argument("--dynamic-density", type=float, default=0.55)
+    ap.add_argument("--section-seconds", type=float, default=4.0)
+    ap.add_argument("--allow-doubles", action="store_true")
+    ap.add_argument("--allow-holds", action="store_true")
+    ap.add_argument("--double-rate", type=float, default=0.0)
+    ap.add_argument("--hold-rate", type=float, default=0.0)
+    ap.add_argument("--hold-min", type=float, default=0.35)
+    ap.add_argument("--hold-max", type=float, default=0.9)
     args = ap.parse_args(argv)
 
     chart, report = generate_chart(
@@ -384,6 +576,14 @@ def main(argv: list[str] | None = None) -> int:
         keys=parse_key_names(args.keys),
         max_notes=args.max_notes,
         min_gap_s=args.min_gap,
+        dynamic_density=args.dynamic_density,
+        section_seconds=args.section_seconds,
+        allow_doubles=args.allow_doubles,
+        allow_holds=args.allow_holds,
+        double_rate=args.double_rate,
+        hold_rate=args.hold_rate,
+        hold_min=args.hold_min,
+        hold_max=args.hold_max,
     )
     Path(args.chart).parent.mkdir(parents=True, exist_ok=True)
     Path(args.report).parent.mkdir(parents=True, exist_ok=True)

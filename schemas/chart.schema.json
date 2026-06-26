@@ -28,7 +28,13 @@
         "perfect_window": {"type": "number", "minimum": 0},
         "good_window": {"type": "number", "minimum": 0},
         "allow_doubles": {"type": "boolean"},
-        "allow_holds": {"type": "boolean"}
+        "allow_holds": {"type": "boolean"},
+        "dynamic_density": {"type": "number", "minimum": 0, "maximum": 1},
+        "section_seconds": {"type": "number", "minimum": 0.5},
+        "double_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "hold_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "hold_min": {"type": "number", "minimum": 0},
+        "hold_max": {"type": "number", "minimum": 0}
       }
     },
     "lanes": {
@@ -60,7 +66,13 @@
           "confidence": {"type": "number"},
           "centroid_hz": {"type": "number"},
           "pitch": {"type": ["number", "null"]}
-        }
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"type": {"const": "hold"}}},
+            "then": {"required": ["duration"], "properties": {"duration": {"minimum": 0.05}}}
+          }
+        ]
       }
     }
   }

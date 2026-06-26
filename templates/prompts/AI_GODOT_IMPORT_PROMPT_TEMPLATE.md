@@ -40,14 +40,15 @@ Bundle 复制后的目标位置：res://levels/{SONG_ID}/
    - 如果有主菜单/关卡选择，就加入入口。
    - 如果没有明显入口，创建一个 debug/test scene 或按钮。
    - 不要破坏原有玩法、场景、存档、输入设置。
-6. 写项目内文档：docs/rhythm_bundle_import.md
+6. 尊重我的个性化玩法要求：入口、视觉、命中反馈、难度、长按、同时按键都可以按项目风格适配。
+7. 写项目内文档：docs/rhythm_bundle_import.md
    必须说明：
    - runtime 放在哪里；
    - 每首歌的 bundle 放在哪里；
    - 以后新增音乐时，让 AI 执行什么命令；
    - 如何把新 song_id 加入菜单/关卡列表；
    - 哪些视觉/UI 文件可以安全替换。
-7. 运行 Godot headless/console 验证，没有 parser/runtime error 后再结束。
+8. 运行 Godot headless/console 验证，没有 parser/runtime error 后再结束。
 
 ## 固定谱面契约
 
@@ -56,6 +57,8 @@ Bundle 复制后的目标位置：res://levels/{SONG_ID}/
 - metadata.charts[difficulty] 指向 charts/<difficulty>.chart.json。
 - chart.difficulty.note_speed / perfect_window / good_window 决定速度和判定。
 - note.time 是音频时间轴上的秒数。
+- note.type 可以是 tap 或 hold；hold 使用 note.duration。
+- 同时按键用相同 note.time、不同 lane 表示。
 
 ## 以后新增一首歌时的目标流程
 

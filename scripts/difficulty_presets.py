@@ -19,6 +19,12 @@ class DifficultyPreset:
     good_window: float
     allow_doubles: bool = False
     allow_holds: bool = False
+    dynamic_density: float = 0.45
+    section_seconds: float = 4.0
+    double_rate: float = 0.0
+    hold_rate: float = 0.0
+    hold_min: float = 0.35
+    hold_max: float = 0.9
     description: str = ""
 
     def max_notes_for_duration(self, duration_seconds: float) -> int:
@@ -38,6 +44,12 @@ class DifficultyPreset:
             "good_window": d["good_window"],
             "allow_doubles": d["allow_doubles"],
             "allow_holds": d["allow_holds"],
+            "dynamic_density": d["dynamic_density"],
+            "section_seconds": d["section_seconds"],
+            "double_rate": d["double_rate"],
+            "hold_rate": d["hold_rate"],
+            "hold_min": d["hold_min"],
+            "hold_max": d["hold_max"],
         }
 
 
@@ -53,6 +65,9 @@ PRESETS: dict[str, DifficultyPreset] = {
         good_window=0.160,
         allow_doubles=False,
         allow_holds=False,
+        dynamic_density=0.25,
+        double_rate=0.0,
+        hold_rate=0.0,
         description="Beginner-friendly: 3-key A/S/D layout, sparse notes, generous timing.",
     ),
     "normal": DifficultyPreset(
@@ -64,8 +79,13 @@ PRESETS: dict[str, DifficultyPreset] = {
         note_speed=520,
         perfect_window=0.060,
         good_window=0.120,
-        allow_doubles=False,
-        allow_holds=False,
+        allow_doubles=True,
+        allow_holds=True,
+        dynamic_density=0.45,
+        double_rate=0.04,
+        hold_rate=0.08,
+        hold_min=0.35,
+        hold_max=0.75,
         description="Default playable chart: 3-key A/S/D layout, moderate density.",
     ),
     "hard": DifficultyPreset(
@@ -79,6 +99,11 @@ PRESETS: dict[str, DifficultyPreset] = {
         good_window=0.090,
         allow_doubles=True,
         allow_holds=True,
+        dynamic_density=0.70,
+        double_rate=0.16,
+        hold_rate=0.16,
+        hold_min=0.35,
+        hold_max=1.05,
         description="Challenge chart: 3-key A/S/D layout, higher density and stricter timing.",
     ),
     "expert": DifficultyPreset(
@@ -92,6 +117,11 @@ PRESETS: dict[str, DifficultyPreset] = {
         good_window=0.070,
         allow_doubles=True,
         allow_holds=True,
+        dynamic_density=0.90,
+        double_rate=0.26,
+        hold_rate=0.22,
+        hold_min=0.30,
+        hold_max=1.20,
         description="High-density expert chart on the same 3-key A/S/D layout.",
     ),
 }
@@ -146,6 +176,12 @@ def custom_preset(
     rating: int = 5,
     allow_doubles: bool = False,
     allow_holds: bool = False,
+    dynamic_density: float = 0.55,
+    section_seconds: float = 4.0,
+    double_rate: float = 0.08,
+    hold_rate: float = 0.10,
+    hold_min: float = 0.35,
+    hold_max: float = 0.9,
 ) -> DifficultyPreset:
     if lanes != DEFAULT_LANES:
         raise ValueError("custom lanes must be 3 for the A/S/D product layout")
@@ -162,6 +198,12 @@ def custom_preset(
         good_window=good_window,
         allow_doubles=allow_doubles,
         allow_holds=allow_holds,
+        dynamic_density=dynamic_density,
+        section_seconds=section_seconds,
+        double_rate=double_rate,
+        hold_rate=hold_rate,
+        hold_min=hold_min,
+        hold_max=hold_max,
         description="User-defined difficulty preset.",
     )
 
@@ -182,6 +224,12 @@ def resolve_presets_from_args(args: Any) -> list[DifficultyPreset]:
                     rating=getattr(args, "rating", 5) or 5,
                     allow_doubles=bool(getattr(args, "allow_doubles", False)),
                     allow_holds=bool(getattr(args, "allow_holds", False)),
+                    dynamic_density=getattr(args, "dynamic_density", 0.55) if getattr(args, "dynamic_density", None) is not None else 0.55,
+                    section_seconds=getattr(args, "section_seconds", 4.0) or 4.0,
+                    double_rate=getattr(args, "double_rate", 0.08) if getattr(args, "double_rate", None) is not None else 0.08,
+                    hold_rate=getattr(args, "hold_rate", 0.10) if getattr(args, "hold_rate", None) is not None else 0.10,
+                    hold_min=getattr(args, "hold_min", 0.35) or 0.35,
+                    hold_max=getattr(args, "hold_max", 0.9) or 0.9,
                 )
             )
         else:

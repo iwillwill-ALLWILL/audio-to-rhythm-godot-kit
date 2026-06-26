@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/audio-to-rhythm-godot-kit/chart.schema.json",
+  "title": "RhythmKit Chart v1",
+  "type": "object",
+  "required": ["schema", "song_id", "title", "audio", "duration", "bpm", "difficulty", "lanes", "notes"],
+  "properties": {
+    "schema": {"const": "com.rhythmkit.chart.v1"},
+    "generator_version": {"type": "string"},
+    "song_id": {"type": "string"},
+    "title": {"type": "string"},
+    "artist": {"type": "string"},
+    "audio": {"type": "string"},
+    "duration": {"type": "number", "minimum": 0},
+    "bpm": {"type": "number", "minimum": 1},
+    "offset": {"type": "number"},
+    "theme": {"type": "string"},
+    "difficulty": {
+      "type": "object",
+      "required": ["name", "rating", "lanes", "note_speed", "perfect_window", "good_window"],
+      "properties": {
+        "name": {"type": "string"},
+        "rating": {"type": "integer"},
+        "lanes": {"type": "integer", "minimum": 1},
+        "notes_per_30s": {"type": "integer", "minimum": 1},
+        "min_gap": {"type": "number", "minimum": 0},
+        "note_speed": {"type": "number", "minimum": 1},
+        "perfect_window": {"type": "number", "minimum": 0},
+        "good_window": {"type": "number", "minimum": 0},
+        "allow_doubles": {"type": "boolean"},
+        "allow_holds": {"type": "boolean"}
+      }
+    },
+    "lanes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": {"type": "integer", "minimum": 0},
+          "name": {"type": "string"},
+          "default_key": {"type": "string"}
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "time", "lane", "type"],
+        "properties": {
+          "id": {"type": "integer", "minimum": 1},
+          "time": {"type": "number", "minimum": 0},
+          "lane": {"type": "integer", "minimum": 0},
+          "type": {"enum": ["tap", "hold"]},
+          "duration": {"type": "number", "minimum": 0},
+          "source": {"type": "string"},
+          "confidence": {"type": "number"},
+          "centroid_hz": {"type": "number"},
+          "pitch": {"type": ["number", "null"]}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Generated outputs / bundles / preview projects
+dist/*
+!dist/.gitkeep
+
+# Local test uploads and copyrighted preview snippets are not committed.
+examples/input/*
+!examples/input/.gitkeep
+
+.import/
+.godot/

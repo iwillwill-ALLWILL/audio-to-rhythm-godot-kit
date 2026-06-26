@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/audio-to-rhythm-godot-kit/bundle.schema.json",
+  "title": "RhythmKit Bundle v1",
+  "type": "object",
+  "required": ["schema", "song_id", "title", "audio", "duration", "bpm", "charts"],
+  "properties": {
+    "schema": {"const": "com.rhythmkit.bundle.v1"},
+    "generator": {"type": "string"},
+    "generator_version": {"type": "string"},
+    "song_id": {"type": "string"},
+    "title": {"type": "string"},
+    "artist": {"type": "string"},
+    "audio": {"type": "string"},
+    "original_audio": {"type": "string"},
+    "duration": {"type": "number", "minimum": 0},
+    "bpm": {"type": "number", "minimum": 1},
+    "theme": {"type": "string"},
+    "charts": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "string"}
+    }
+  }
+}

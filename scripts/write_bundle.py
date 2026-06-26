@@ -5,14 +5,17 @@ import json
 import re
 import shutil
 import subprocess
+import wave
 from pathlib import Path
 from typing import Any
 
-from analyze_audio import find_ffmpeg, generate_chart
+import numpy as np
+
+from analyze_audio import DEFAULT_KEYS, decode_pcm_wav, find_ffmpeg, find_ffmpeg_optional, generate_chart
 from difficulty_presets import DifficultyPreset
 
 GENERATOR_NAME = "audio-to-rhythm-godot-kit"
-GENERATOR_VERSION = "0.2.0"
+GENERATOR_VERSION = "0.3.0"
 BUNDLE_SCHEMA = "com.rhythmkit.bundle.v1"
 CHART_SCHEMA = "com.rhythmkit.chart.v1"
 
@@ -38,11 +41,14 @@ def find_ffprobe() -> str | None:
     exe = shutil.which("ffprobe")
     if exe:
         return exe
-    ffmpeg = Path(find_ffmpeg())
-    candidate = ffmpeg.with_name("ffprobe.exe")
+    ffmpeg = find_ffmpeg_optional()
+    if not ffmpeg:
+        return None
+    ffmpeg_path = Path(ffmpeg)
+    candidate = ffmpeg_path.with_name("ffprobe.exe")
     if candidate.exists():
         return str(candidate)
-    candidate = ffmpeg.with_name("ffprobe")
+    candidate = ffmpeg_path.with_name("ffprobe")
     if candidate.exists():
         return str(candidate)
     return None
@@ -65,7 +71,20 @@ def probe_duration(audio_path: Path) -> float | None:
 def convert_audio_for_bundle(src: Path, dst: Path) -> None:
     """Convert arbitrary uploaded audio to a broadly engine-friendly PCM WAV."""
     dst.parent.mkdir(parents=True, exist_ok=True)
-    cmd = [find_ffmpeg(), "-y", "-v", "error", "-i", str(src), "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", str(dst)]
+    ffmpeg = find_ffmpeg_optional()
+    if ffmpeg is None:
+        if src.suffix.lower() != ".wav":
+            raise RuntimeError("ffmpeg not found on PATH. Non-WAV uploads require ffmpeg or FFMPEG/FFMPEG_PATH.")
+        audio, sr = decode_pcm_wav(src, sr=44100)
+        pcm = np.int16(np.clip(audio, -1.0, 1.0) * 32767)
+        stereo = np.repeat(pcm[:, None], 2, axis=1)
+        with wave.open(str(dst), "wb") as w:
+            w.setnchannels(2)
+            w.setsampwidth(2)
+            w.setframerate(sr)
+            w.writeframes(stereo.tobytes())
+        return
+    cmd = [ffmpeg, "-y", "-v", "error", "-i", str(src), "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", str(dst)]
     p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     if p.returncode != 0:
         raise RuntimeError("ffmpeg audio conversion failed: " + p.stderr.decode("utf-8", "ignore"))
@@ -90,11 +109,15 @@ def normalize_chart_for_bundle(
         )
 
     notes = []
+    lane_count = max(1, len(lanes))
     for idx, note in enumerate(raw_chart.get("notes", []), start=1):
+        lane = int(note.get("lane", 0))
+        if lane < 0 or lane >= lane_count:
+            lane = lane % lane_count
         n = {
             "id": idx,
             "time": float(note.get("time", 0.0)),
-            "lane": int(note.get("lane", 0)),
+            "lane": lane,
             "type": str(note.get("type", "tap")),
             "source": str(note.get("source", "onset")),
             "confidence": float(note.get("confidence", 0.0)),
@@ -289,13 +312,15 @@ Include:
   "audio": "../audio/song.wav",
   "difficulty": {{
     "name": "normal",
-    "lanes": 4,
+    "lanes": 3,
     "note_speed": 520,
     "perfect_window": 0.06,
     "good_window": 0.12
   }},
   "lanes": [
-    {{"id": 0, "name": "CUT", "default_key": "A"}}
+    {{"id": 0, "name": "CUT", "default_key": "A"}},
+    {{"id": 1, "name": "STIR", "default_key": "S"}},
+    {{"id": 2, "name": "FIRE", "default_key": "D"}}
   ],
   "notes": [
     {{"id": 1, "time": 1.25, "lane": 0, "type": "tap"}}
@@ -399,7 +424,7 @@ var metadata: Dictionary = {}
 var chart: Dictionary = {}
 var notes: Array = []
 var lanes: Array = []
-var lane_count: int = 4
+var lane_count: int = 3
 var note_speed: float = 520.0
 var perfect_window: float = 0.060
 var good_window: float = 0.120
@@ -413,7 +438,7 @@ var lane_labels: Array = []
 
 @onready var music: AudioStreamPlayer = $Music
 
-const FALLBACK_KEYS = [KEY_A, KEY_S, KEY_K, KEY_L, KEY_D, KEY_F]
+const FALLBACK_KEYS = [KEY_A, KEY_S, KEY_D]
 const COLORS = [
 	Color(0.95, 0.40, 0.28, 1.0),
 	Color(0.95, 0.67, 0.25, 1.0),
@@ -686,10 +711,12 @@ def create_bundle(
     artist: str | None = None,
     song_id: str | None = None,
     theme: str = "cooking",
+    keys: list[str] | tuple[str, ...] | None = None,
     include_original: bool = True,
 ) -> dict[str, Any]:
     audio_path = Path(audio_path).resolve()
     out_dir = Path(out_dir).resolve()
+    keys = list(keys) if keys is not None else list(DEFAULT_KEYS)
     title = title or audio_path.stem
     song_id = song_id or slugify(title)
 
@@ -723,6 +750,7 @@ def create_bundle(
             title=title,
             theme=theme,
             lanes=preset.lanes,
+            keys=keys,
             max_notes=max_notes,
             min_gap_s=preset.min_gap,
         )
@@ -755,6 +783,7 @@ def create_bundle(
         "duration": round(duration, 4),
         "bpm": bpm,
         "theme": theme,
+        "layout": {"lanes": presets[0].lanes if presets else 0, "keys": list(keys or [])},
         "charts": charts,
     }
     write_json(out_dir / "metadata.json", metadata)
@@ -764,7 +793,7 @@ def create_bundle(
         "bundle": str(out_dir),
         "metadata": metadata,
         "charts": chart_reports,
-        "dependencies": {"ffmpeg": find_ffmpeg()},
+        "dependencies": {"ffmpeg": find_ffmpeg_optional()},
         "limitations": [
             "MVP uses onset/energy analysis, not full melody transcription.",
             "Keysounds are not extracted from mixed audio in this version.",

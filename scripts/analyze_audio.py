@@ -15,11 +15,27 @@ from typing import Any
 import numpy as np
 
 DEFAULT_SR = 22050
-DEFAULT_KEYS = ["A", "S", "K", "L", "D", "F"]
+DEFAULT_KEYS = ["A", "S", "D"]
 THEME_LANES = {
-    "cooking": ["CUT", "STIR", "SEASON", "FIRE", "SERVE", "WASH"],
+    "cooking": ["CUT", "STIR", "FIRE", "SEASON", "SERVE", "WASH"],
     "generic": ["LANE 1", "LANE 2", "LANE 3", "LANE 4", "LANE 5", "LANE 6"],
 }
+
+
+def parse_key_names(raw: str | list[str] | tuple[str, ...] | None) -> list[str]:
+    if raw is None:
+        return list(DEFAULT_KEYS)
+    if isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return list(DEFAULT_KEYS)
+        if "," in text:
+            keys = [part.strip().upper() for part in text.split(",") if part.strip()]
+        else:
+            keys = [ch.upper() for ch in text if not ch.isspace()]
+    else:
+        keys = [str(part).strip().upper() for part in raw if str(part).strip()]
+    return keys or list(DEFAULT_KEYS)
 
 
 def find_ffmpeg() -> str:
@@ -32,10 +48,61 @@ def find_ffmpeg() -> str:
     raise RuntimeError("ffmpeg not found on PATH. Install ffmpeg or set FFMPEG/FFMPEG_PATH.")
 
 
+def find_ffmpeg_optional() -> str | None:
+    try:
+        return find_ffmpeg()
+    except RuntimeError:
+        return None
+
+
+def decode_pcm_wav(path: str | Path, sr: int = DEFAULT_SR) -> tuple[np.ndarray, int]:
+    """Decode an uncompressed PCM WAV with the Python stdlib.
+
+    This lets WAV-only demo/test flows work even on machines without ffmpeg. Arbitrary
+    uploaded formats still require ffmpeg.
+    """
+    with wave.open(str(path), "rb") as w:
+        channels = w.getnchannels()
+        source_sr = w.getframerate()
+        sampwidth = w.getsampwidth()
+        frames = w.readframes(w.getnframes())
+
+    if sampwidth == 1:
+        audio = (np.frombuffer(frames, dtype=np.uint8).astype(np.float32) - 128.0) / 128.0
+    elif sampwidth == 2:
+        audio = np.frombuffer(frames, dtype="<i2").astype(np.float32) / 32768.0
+    elif sampwidth == 4:
+        audio = np.frombuffer(frames, dtype="<i4").astype(np.float32) / 2147483648.0
+    else:
+        raise RuntimeError(f"unsupported WAV sample width without ffmpeg: {sampwidth} bytes")
+
+    if channels > 1:
+        audio = audio.reshape(-1, channels).mean(axis=1)
+    if source_sr != sr and audio.size:
+        old_x = np.linspace(0.0, 1.0, audio.size, endpoint=False, dtype=np.float32)
+        new_len = max(1, int(round(audio.size * sr / source_sr)))
+        new_x = np.linspace(0.0, 1.0, new_len, endpoint=False, dtype=np.float32)
+        audio = np.interp(new_x, old_x, audio).astype(np.float32)
+    audio = np.nan_to_num(audio.astype(np.float32), copy=False)
+    return audio, sr
+
+
 def decode_audio(path: str | Path, sr: int = DEFAULT_SR) -> tuple[np.ndarray, int]:
     """Decode any ffmpeg-supported audio file into mono float32 numpy array."""
-    path = str(path)
-    ffmpeg = find_ffmpeg()
+    path_obj = Path(path)
+    wav_error: Exception | None = None
+    if path_obj.suffix.lower() == ".wav":
+        try:
+            return decode_pcm_wav(path_obj, sr=sr)
+        except Exception as exc:
+            wav_error = exc
+
+    ffmpeg = find_ffmpeg_optional()
+    if ffmpeg is None:
+        if wav_error is not None:
+            raise RuntimeError(f"ffmpeg not found and WAV fallback failed: {wav_error}") from wav_error
+        raise RuntimeError("ffmpeg not found on PATH. Install ffmpeg or set FFMPEG/FFMPEG_PATH.")
+    path = str(path_obj)
     cmd = [
         ffmpeg,
         "-v",
@@ -193,11 +260,12 @@ def lane_from_centroid(centroid_hz: float, lane_count: int, fallback_index: int)
     return int((pattern[fallback_index % len(pattern)] + rotation) % lane_count)
 
 
-def make_lanes(theme: str, lanes: int) -> list[dict[str, Any]]:
+def make_lanes(theme: str, lanes: int, keys: list[str] | tuple[str, ...] | None = None) -> list[dict[str, Any]]:
     names = THEME_LANES.get(theme, THEME_LANES["generic"])
+    key_names = parse_key_names(list(keys) if keys is not None else None)
     out = []
     for i in range(lanes):
-        out.append({"id": i, "name": names[i] if i < len(names) else f"LANE {i+1}", "key": DEFAULT_KEYS[i] if i < len(DEFAULT_KEYS) else str(i + 1)})
+        out.append({"id": i, "name": names[i] if i < len(names) else f"LANE {i+1}", "key": key_names[i] if i < len(key_names) else str(i + 1)})
     return out
 
 
@@ -206,7 +274,8 @@ def generate_chart(
     *,
     title: str | None = None,
     theme: str = "cooking",
-    lanes: int = 4,
+    lanes: int = 3,
+    keys: list[str] | tuple[str, ...] | None = None,
     max_notes: int = 260,
     min_gap_s: float = 0.15,
     sr: int = DEFAULT_SR,
@@ -270,7 +339,7 @@ def generate_chart(
         "bpm": bpm,
         "offset": 0.0,
         "theme": theme,
-        "lanes": make_lanes(theme, lanes),
+        "lanes": make_lanes(theme, lanes, keys),
         "notes": notes,
     }
     report = {
@@ -280,7 +349,7 @@ def generate_chart(
         "bpm": bpm,
         "notes": len(notes),
         "mode": "onset_mvp",
-        "dependencies": {"ffmpeg": find_ffmpeg(), "numpy": np.__version__},
+        "dependencies": {"ffmpeg": find_ffmpeg_optional(), "numpy": np.__version__},
     }
     return chart, report
 
@@ -291,12 +360,20 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--chart", default="chart.json")
     ap.add_argument("--report", default="report.json")
     ap.add_argument("--theme", default="cooking")
-    ap.add_argument("--lanes", type=int, default=4)
+    ap.add_argument("--lanes", type=int, default=3)
+    ap.add_argument("--keys", default=",".join(DEFAULT_KEYS), help="Comma-separated lane keys, e.g. A,S,D")
     ap.add_argument("--max-notes", type=int, default=260)
     ap.add_argument("--min-gap", type=float, default=0.15)
     args = ap.parse_args(argv)
 
-    chart, report = generate_chart(args.audio, theme=args.theme, lanes=args.lanes, max_notes=args.max_notes, min_gap_s=args.min_gap)
+    chart, report = generate_chart(
+        args.audio,
+        theme=args.theme,
+        lanes=args.lanes,
+        keys=parse_key_names(args.keys),
+        max_notes=args.max_notes,
+        min_gap_s=args.min_gap,
+    )
     Path(args.chart).parent.mkdir(parents=True, exist_ok=True)
     Path(args.report).parent.mkdir(parents=True, exist_ok=True)
     Path(args.chart).write_text(json.dumps(chart, ensure_ascii=False, indent=2), encoding="utf-8")

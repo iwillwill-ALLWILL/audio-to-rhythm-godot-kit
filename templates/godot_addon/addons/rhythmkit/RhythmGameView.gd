@@ -9,7 +9,7 @@ class_name RhythmGameView
 var chart: Dictionary = {}
 var notes: Array = []
 var lane_data: Array = []
-var lane_count: int = 4
+var lane_count: int = 3
 var note_speed: float = 520.0
 var spawn_ahead: float = 2.4
 var perfect_window: float = 0.06
@@ -24,7 +24,7 @@ var lane_labels: Array = []
 @onready var music: AudioStreamPlayer = $Music
 
 const LOADER = preload("res://addons/rhythmkit/RhythmLevelLoader.gd")
-const KEY_CODES = [KEY_A, KEY_S, KEY_K, KEY_L, KEY_D, KEY_F]
+const KEY_CODES = [KEY_A, KEY_S, KEY_D]
 const LANE_COLORS = [
 	Color(0.95, 0.40, 0.28, 1.0),
 	Color(0.95, 0.67, 0.25, 1.0),

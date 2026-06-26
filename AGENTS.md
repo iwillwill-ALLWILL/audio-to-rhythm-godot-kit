@@ -7,6 +7,8 @@ Goal: turn an uploaded audio file into a portable rhythm-game level bundle, with
 ```bash
 python scripts/create_rhythm_bundle.py path/to/song.mp3 \
   --difficulties easy,normal,hard \
+  --lanes 3 \
+  --keys A,S,D \
   --target bundle \
   --out dist/song_bundle
 ```
@@ -33,6 +35,8 @@ Godot addon/import package:
 ```bash
 python scripts/create_rhythm_bundle.py path/to/song.mp3 \
   --difficulties easy,normal,hard \
+  --lanes 3 \
+  --keys A,S,D \
   --target godot-addon \
   --out dist/song_godot_addon
 ```
@@ -42,6 +46,8 @@ Standalone Godot preview project:
 ```bash
 python scripts/create_rhythm_bundle.py path/to/song.mp3 \
   --difficulty normal \
+  --lanes 3 \
+  --keys A,S,D \
   --target godot-project \
   --out dist/song_preview_project
 ```
@@ -49,7 +55,7 @@ python scripts/create_rhythm_bundle.py path/to/song.mp3 \
 Legacy direct preview still exists:
 
 ```bash
-python scripts/create_rhythm_game.py path/to/song.mp3 --theme cooking --lanes 4 --out dist/song_godot
+python scripts/create_rhythm_game.py path/to/song.mp3 --theme cooking --lanes 3 --keys A,S,D --out dist/song_godot
 ```
 
 ## Development rules for agents
@@ -70,4 +76,4 @@ python scripts/create_rhythm_game.py path/to/song.mp3 --theme cooking --lanes 4 
 - Bundle writer: portable audio + metadata + charts + integration docs.
 - Godot addon: `addons/rhythmkit` loader/player that can be copied into a user's project.
 - Godot project preview: standalone player for quick QA.
-- Theme: `cooking` maps lanes to CUT/STIR/SEASON/FIRE.
+- Theme: `cooking` maps the default 3-key layout to CUT/STIR/FIRE on A/S/D.

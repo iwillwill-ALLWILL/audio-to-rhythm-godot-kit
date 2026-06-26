@@ -6,7 +6,12 @@ import json
 import os
 import shutil
 import subprocess
+import wave
 from pathlib import Path
+
+import numpy as np
+
+from analyze_audio import decode_pcm_wav
 
 
 GODOT_SCRIPT = r'''extends Control
@@ -22,7 +27,7 @@ GODOT_SCRIPT = r'''extends Control
 var chart: Dictionary = {}
 var notes: Array = []
 var lane_data: Array = []
-var lane_count: int = 4
+var lane_count: int = 3
 var score: int = 0
 var combo: int = 0
 var max_combo: int = 0
@@ -39,7 +44,7 @@ var lane_labels: Array = []
 
 @onready var music: AudioStreamPlayer = $Music
 
-const KEY_CODES = [KEY_A, KEY_S, KEY_K, KEY_L, KEY_D, KEY_F]
+const KEY_CODES = [KEY_A, KEY_S, KEY_D]
 const LANE_COLORS = [
 	Color(0.95, 0.40, 0.28, 1.0),
 	Color(0.95, 0.67, 0.25, 1.0),
@@ -321,10 +326,30 @@ def find_ffmpeg() -> str:
     raise RuntimeError("ffmpeg not found on PATH; needed to export Godot-loadable PCM WAV. Install ffmpeg or set FFMPEG/FFMPEG_PATH.")
 
 
+def find_ffmpeg_optional() -> str | None:
+    try:
+        return find_ffmpeg()
+    except RuntimeError:
+        return None
+
+
 def convert_audio_for_godot(src: Path, dst: Path) -> None:
     """Convert arbitrary input audio to Godot-friendly PCM s16le WAV."""
     dst.parent.mkdir(parents=True, exist_ok=True)
-    cmd = [find_ffmpeg(), "-y", "-v", "error", "-i", str(src), "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", str(dst)]
+    ffmpeg = find_ffmpeg_optional()
+    if ffmpeg is None:
+        if src.suffix.lower() != ".wav":
+            raise RuntimeError("ffmpeg not found on PATH. Non-WAV Godot exports require ffmpeg or FFMPEG/FFMPEG_PATH.")
+        audio, sr = decode_pcm_wav(src, sr=44100)
+        pcm = np.int16(np.clip(audio, -1.0, 1.0) * 32767)
+        stereo = np.repeat(pcm[:, None], 2, axis=1)
+        with wave.open(str(dst), "wb") as w:
+            w.setnchannels(2)
+            w.setsampwidth(2)
+            w.setframerate(sr)
+            w.writeframes(stereo.tobytes())
+        return
+    cmd = [ffmpeg, "-y", "-v", "error", "-i", str(src), "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", str(dst)]
     p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     if p.returncode != 0:
         raise RuntimeError("ffmpeg audio conversion failed: " + p.stderr.decode("utf-8", "ignore"))

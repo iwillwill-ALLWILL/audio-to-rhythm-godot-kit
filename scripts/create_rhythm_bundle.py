@@ -11,7 +11,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from difficulty_presets import list_presets, resolve_presets_from_args  # noqa: E402
+from analyze_audio import DEFAULT_KEYS, parse_key_names  # noqa: E402
+from difficulty_presets import list_presets, resolve_presets_from_args, with_lane_count  # noqa: E402
 from write_bundle import create_bundle, slugify, write_godot_addon, write_json, write_project_godot, write_text, zip_directory  # noqa: E402
 
 
@@ -29,8 +30,11 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--zip", action="store_true", help="Also create <out>.zip")
     ap.add_argument("--no-original", action="store_true", help="Do not copy original uploaded audio into audio/original.<ext>")
 
-    # Custom difficulty knobs. Only used when --difficulty custom or --difficulties includes custom.
-    ap.add_argument("--lanes", type=int, default=4)
+    # Layout knobs apply to every generated difficulty. Current product default is 3-key A/S/D.
+    ap.add_argument("--lanes", type=int, default=3)
+    ap.add_argument("--keys", default=",".join(DEFAULT_KEYS), help="Comma-separated lane keys, e.g. A,S,D")
+
+    # Custom difficulty knobs. Density/timing are only used when --difficulty custom or --difficulties includes custom.
     ap.add_argument("--note-density", type=float, default=2.0, help="Custom difficulty density in notes per second")
     ap.add_argument("--min-gap", type=float, default=0.25)
     ap.add_argument("--note-speed", type=float, default=520.0)
@@ -102,7 +106,8 @@ def main() -> int:
     audio = Path(args.audio).resolve()
     if not audio.exists():
         raise FileNotFoundError(audio)
-    presets = resolve_presets_from_args(args)
+    presets = [with_lane_count(p, args.lanes) for p in resolve_presets_from_args(args)]
+    key_names = parse_key_names(args.keys)
     title = args.title or audio.stem
     song_id = args.song_id or slugify(title)
     out = Path(args.out).resolve()
@@ -117,6 +122,7 @@ def main() -> int:
             artist=args.artist,
             song_id=song_id,
             theme=args.theme,
+            keys=key_names,
             include_original=not args.no_original,
         )
         target_info = {"target": "bundle", "bundle_dir": str(bundle_dir)}
@@ -131,6 +137,7 @@ def main() -> int:
             artist=args.artist,
             song_id=song_id,
             theme=args.theme,
+            keys=key_names,
             include_original=not args.no_original,
         )
         default_difficulty = presets[0].name
@@ -158,6 +165,7 @@ def main() -> int:
         "title": title,
         "difficulties": [p.name for p in presets],
         "metadata": result["metadata"],
+        "layout": {"lanes": args.lanes, "keys": key_names},
         "target": target_info,
         "zip": zip_path,
     }

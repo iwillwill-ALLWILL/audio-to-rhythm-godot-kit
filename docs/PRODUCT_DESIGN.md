@@ -63,7 +63,8 @@ Audio: song.mp3 / wav / m4a / flac
 Difficulties: Easy / Normal / Hard / Expert / Custom
 Output: Bundle / Godot Addon / Godot Preview Project / Web Preview
 Theme tags: cooking / generic / custom lane names
-Lane count: auto or explicit
+Lane count: 3 by default, or explicit
+Keys: A/S/D by default, or explicit
 Advanced: note density, min gap, speed, judgement windows, allow holds/doubles
 ```
 
@@ -75,10 +76,10 @@ Difficulty is not an afterthought. It controls chart generation and runtime feel
 
 | Difficulty | Lanes | Notes / 30s | Min gap | Note speed | Perfect | Good | Doubles | Holds |
 |---|---:|---:|---:|---:|---:|---:|---|---|
-| easy | 2 | 30-50 | 0.38-0.45s | 360 | 0.080s | 0.160s | no | no |
-| normal | 4 | 55-90 | 0.24-0.32s | 520 | 0.060s | 0.120s | rare | optional |
-| hard | 4 | 90-140 | 0.14-0.22s | 650 | 0.045s | 0.090s | yes | yes |
-| expert | 4-6 | 130-220 | 0.08-0.14s | 780 | 0.035s | 0.070s | yes | yes |
+| easy | 3 | 30-50 | 0.38-0.45s | 360 | 0.080s | 0.160s | no | no |
+| normal | 3 | 55-90 | 0.24-0.32s | 520 | 0.060s | 0.120s | rare | optional |
+| hard | 3 | 90-140 | 0.14-0.22s | 650 | 0.045s | 0.090s | yes | yes |
+| expert | 3 | 130-220 | 0.08-0.14s | 780 | 0.035s | 0.070s | yes | yes |
 
 The actual note cap should scale by song duration:
 
@@ -93,6 +94,8 @@ Generate one difficulty:
 ```bash
 python scripts/create_rhythm_bundle.py input.mp3 \
   --difficulty normal \
+  --lanes 3 \
+  --keys A,S,D \
   --target bundle \
   --out dist/input_bundle
 ```
@@ -102,6 +105,8 @@ Generate multiple difficulties:
 ```bash
 python scripts/create_rhythm_bundle.py input.mp3 \
   --difficulties easy,normal,hard \
+  --lanes 3 \
+  --keys A,S,D \
   --target bundle \
   --out dist/input_bundle
 ```
@@ -112,6 +117,7 @@ Custom difficulty:
 python scripts/create_rhythm_bundle.py input.mp3 \
   --difficulty custom \
   --lanes 3 \
+  --keys A,S,D \
   --note-density 1.8 \
   --min-gap 0.28 \
   --note-speed 480 \
@@ -134,7 +140,7 @@ Each chart file should be engine-neutral and self-contained except for audio pat
   "difficulty": {
     "name": "normal",
     "rating": 4,
-    "lanes": 4,
+    "lanes": 3,
     "note_speed": 520,
     "perfect_window": 0.06,
     "good_window": 0.12
@@ -142,8 +148,7 @@ Each chart file should be engine-neutral and self-contained except for audio pat
   "lanes": [
     {"id": 0, "name": "CUT", "default_key": "A"},
     {"id": 1, "name": "STIR", "default_key": "S"},
-    {"id": 2, "name": "SEASON", "default_key": "K"},
-    {"id": 3, "name": "FIRE", "default_key": "L"}
+    {"id": 2, "name": "FIRE", "default_key": "D"}
   ],
   "notes": [
     {"id": 1, "time": 0.7663, "lane": 0, "type": "tap", "source": "onset", "confidence": 0.82},
@@ -245,7 +250,7 @@ This is the clean product path: the converter outputs bundles; the addon teaches
 Best for real users and arbitrary games.
 
 ```bash
-create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard --target bundle
+create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard --lanes 3 --keys A,S,D --target bundle
 ```
 
 Output: portable level bundle only.
@@ -255,7 +260,7 @@ Output: portable level bundle only.
 Best for Godot developers who want a ready runtime.
 
 ```bash
-create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard --target godot-addon
+create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard --lanes 3 --keys A,S,D --target godot-addon
 ```
 
 Output:
@@ -271,7 +276,7 @@ output/
 Best for demos, QA, and agent verification. Not the main product output.
 
 ```bash
-create_rhythm_bundle.py song.mp3 --difficulty normal --target godot-project
+create_rhythm_bundle.py song.mp3 --difficulty normal --lanes 3 --keys A,S,D --target godot-project
 ```
 
 Output: standalone playable project with the bundle embedded.

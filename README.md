@@ -15,6 +15,8 @@ python scripts/make_test_audio.py examples/input/test_song.wav --duration 30 --b
 
 python scripts/create_rhythm_bundle.py examples/input/test_song.wav \
   --difficulties easy,normal,hard \
+  --lanes 3 \
+  --keys A,S,D \
   --target bundle \
   --out dist/test_song_bundle
 ```
@@ -42,6 +44,8 @@ dist/test_song_bundle/
 ```bash
 python scripts/create_rhythm_bundle.py song.mp3 \
   --difficulties easy,normal,hard \
+  --lanes 3 \
+  --keys A,S,D \
   --target bundle \
   --out dist/song_bundle \
   --zip
@@ -58,13 +62,13 @@ easy / normal / hard / expert
 单难度：
 
 ```bash
-python scripts/create_rhythm_bundle.py song.mp3 --difficulty normal --target bundle --out dist/song_bundle
+python scripts/create_rhythm_bundle.py song.mp3 --difficulty normal --lanes 3 --keys A,S,D --target bundle --out dist/song_bundle
 ```
 
 多难度：
 
 ```bash
-python scripts/create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard --target bundle --out dist/song_bundle
+python scripts/create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard --lanes 3 --keys A,S,D --target bundle --out dist/song_bundle
 ```
 
 自定义：
@@ -73,6 +77,7 @@ python scripts/create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard 
 python scripts/create_rhythm_bundle.py song.mp3 \
   --difficulty custom \
   --lanes 3 \
+  --keys A,S,D \
   --note-density 2.0 \
   --min-gap 0.28 \
   --note-speed 480 \
@@ -82,14 +87,14 @@ python scripts/create_rhythm_bundle.py song.mp3 \
   --out dist/song_custom_bundle
 ```
 
-难度控制：轨道数、note 密度、最小间隔、下落速度、判定窗口。
+难度控制：轨道数、按键映射、note 密度、最小间隔、下落速度、判定窗口。当前默认是 3 键 `A/S/D`。
 
 ## 输出目标
 
 ### 1. `bundle`：正式产品默认
 
 ```bash
-python scripts/create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard --target bundle --out dist/song_bundle
+python scripts/create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard --lanes 3 --keys A,S,D --target bundle --out dist/song_bundle
 ```
 
 只输出关卡包，用户自己的 Godot/Unity/自研游戏都能接。
@@ -97,7 +102,7 @@ python scripts/create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard 
 ### 2. `godot-addon`：给 Godot 用户直接导入
 
 ```bash
-python scripts/create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard --target godot-addon --out dist/song_godot_addon
+python scripts/create_rhythm_bundle.py song.mp3 --difficulties easy,normal,hard --lanes 3 --keys A,S,D --target godot-addon --out dist/song_godot_addon
 ```
 
 输出：
@@ -128,7 +133,7 @@ view.start_game()
 ### 3. `godot-project`：独立预览/QA
 
 ```bash
-python scripts/create_rhythm_bundle.py song.mp3 --difficulty normal --target godot-project --out dist/song_preview_project
+python scripts/create_rhythm_bundle.py song.mp3 --difficulty normal --lanes 3 --keys A,S,D --target godot-project --out dist/song_preview_project
 ```
 
 输出完整 Godot 项目，用来试玩谱面，不是最终产品主输出。

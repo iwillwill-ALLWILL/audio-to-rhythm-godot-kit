@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import Any
 
 
@@ -43,7 +43,7 @@ PRESETS: dict[str, DifficultyPreset] = {
     "easy": DifficultyPreset(
         name="easy",
         rating=2,
-        lanes=2,
+        lanes=3,
         notes_per_30s=42,
         min_gap=0.42,
         note_speed=360,
@@ -51,12 +51,12 @@ PRESETS: dict[str, DifficultyPreset] = {
         good_window=0.160,
         allow_doubles=False,
         allow_holds=False,
-        description="Beginner-friendly: 2 lanes, sparse notes, generous timing.",
+        description="Beginner-friendly: 3-key A/S/D layout, sparse notes, generous timing.",
     ),
     "normal": DifficultyPreset(
         name="normal",
         rating=4,
-        lanes=4,
+        lanes=3,
         notes_per_30s=75,
         min_gap=0.28,
         note_speed=520,
@@ -64,12 +64,12 @@ PRESETS: dict[str, DifficultyPreset] = {
         good_window=0.120,
         allow_doubles=False,
         allow_holds=False,
-        description="Default playable chart: 4 lanes, moderate density.",
+        description="Default playable chart: 3-key A/S/D layout, moderate density.",
     ),
     "hard": DifficultyPreset(
         name="hard",
         rating=7,
-        lanes=4,
+        lanes=3,
         notes_per_30s=125,
         min_gap=0.18,
         note_speed=650,
@@ -77,12 +77,12 @@ PRESETS: dict[str, DifficultyPreset] = {
         good_window=0.090,
         allow_doubles=True,
         allow_holds=True,
-        description="Challenge chart: higher density and stricter timing.",
+        description="Challenge chart: 3-key A/S/D layout, higher density and stricter timing.",
     ),
     "expert": DifficultyPreset(
         name="expert",
         rating=9,
-        lanes=5,
+        lanes=3,
         notes_per_30s=175,
         min_gap=0.11,
         note_speed=780,
@@ -90,7 +90,7 @@ PRESETS: dict[str, DifficultyPreset] = {
         good_window=0.070,
         allow_doubles=True,
         allow_holds=True,
-        description="High-density expert chart for advanced players.",
+        description="High-density expert chart on the same 3-key A/S/D layout.",
     ),
 }
 
@@ -125,9 +125,17 @@ def get_preset(name: str) -> DifficultyPreset:
     return PRESETS[key]
 
 
+def with_lane_count(preset: DifficultyPreset, lanes: int) -> DifficultyPreset:
+    if lanes < 1 or lanes > 8:
+        raise ValueError("lanes must be between 1 and 8")
+    if preset.lanes == lanes:
+        return preset
+    return replace(preset, lanes=lanes)
+
+
 def custom_preset(
     *,
-    lanes: int = 4,
+    lanes: int = 3,
     note_density: float = 2.0,
     min_gap: float = 0.25,
     note_speed: float = 520.0,
@@ -163,7 +171,7 @@ def resolve_presets_from_args(args: Any) -> list[DifficultyPreset]:
         if name == "custom":
             presets.append(
                 custom_preset(
-                    lanes=getattr(args, "lanes", 4) or 4,
+                    lanes=getattr(args, "lanes", 3) or 3,
                     note_density=getattr(args, "note_density", 2.0) or 2.0,
                     min_gap=getattr(args, "min_gap", 0.25) or 0.25,
                     note_speed=getattr(args, "note_speed", 520.0) or 520.0,

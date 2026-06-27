@@ -28,7 +28,7 @@ var touch_lanes: Dictionary = {}
 
 @onready var music: AudioStreamPlayer = $Music
 
-const LOADER = preload("res://addons/rhythmkit/RhythmLevelLoader.gd")
+const LOADER = preload("res://addons/rhythmkit/RhythmBundleLoader.gd")
 const KEY_CODES = [KEY_A, KEY_S, KEY_D]
 const LANE_COLORS = [
 	Color(0.95, 0.40, 0.28, 1.0),

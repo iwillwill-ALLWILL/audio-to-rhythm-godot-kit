@@ -23,7 +23,7 @@ view.start_game()
 Or use only the loader and build your own visuals:
 
 ```gdscript
-var loader = preload("res://addons/rhythmkit/RhythmLevelLoader.gd")
+var loader = preload("res://addons/rhythmkit/RhythmBundleLoader.gd")
 var chart = loader.load_bundle("res://levels/<song_id>", "hard")
 ```
 

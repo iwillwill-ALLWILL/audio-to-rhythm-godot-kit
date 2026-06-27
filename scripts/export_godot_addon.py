@@ -144,9 +144,9 @@ Ask the AI to generate/copy the new bundle, update the same menu/level-select/tr
 """
     write_text(out_dir / "README_GODOT_IMPORT.md", readme)
     manifest = {
-        "godot_addon_package": str(out_dir),
-        "addon": str(out_dir / "addons" / "rhythmkit"),
-        "level": str(out_dir / "levels" / song_id),
+        "godot_addon_package": ".",
+        "addon": "addons/rhythmkit",
+        "level": f"levels/{song_id}",
         "preview_scene": "res://scenes/RhythmKitPreview.tscn",
         "preview_difficulty": preview_difficulty,
     }

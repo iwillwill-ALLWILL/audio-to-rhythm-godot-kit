@@ -231,7 +231,7 @@ The generator can also ship a reusable Godot addon:
 
 ```text
 addons/rhythmkit/
-  RhythmLevelLoader.gd
+  RhythmBundleLoader.gd
   RhythmChart.gd
   RhythmPlayer.gd
   RhythmGameView.tscn

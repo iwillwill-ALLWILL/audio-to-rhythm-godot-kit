@@ -24,7 +24,7 @@ Bundle 复制后的目标位置：res://levels/{SONG_ID}/
 
 1. 先检查项目结构：project.godot、主场景、菜单、关卡选择、autoload、输入映射。不要假设场景名字。
 2. 如果项目还没有 RhythmKit runtime，添加或复制：
-   - res://addons/rhythmkit/RhythmLevelLoader.gd
+   - res://addons/rhythmkit/RhythmBundleLoader.gd
    - res://addons/rhythmkit/RhythmGameView.gd
    - res://addons/rhythmkit/RhythmGameView.tscn
 3. 确认当前歌曲 bundle 位于：

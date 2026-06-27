@@ -343,15 +343,12 @@ def apply_playability_modifiers(
 
     if allow_holds and hold_rate > 0.0:
         hold_budget = max(1, int(round(len(out) * min(1.0, max(0.0, float(hold_rate))))))
-        by_lane_times: dict[int, list[float]] = {}
-        for note in out:
-            by_lane_times.setdefault(int(note.get("lane", 0)) % lane_count, []).append(float(note.get("time", 0.0)))
+        all_note_times = sorted(float(note.get("time", 0.0)) for note in out)
         candidates: list[tuple[float, int, float, dict[str, Any]]] = []
         for seq, note in enumerate(out):
-            lane = int(note.get("lane", 0)) % lane_count
             t = float(note.get("time", 0.0))
-            next_same = next((x for x in by_lane_times.get(lane, []) if x > t + min_gap_s), None)
-            room = hold_max if next_same is None else max(0.0, next_same - t - min_gap_s)
+            next_any = next((x for x in all_note_times if x > t + min_gap_s), None)
+            room = hold_max if next_any is None else max(0.0, next_any - t - min_gap_s)
             if room < hold_min:
                 continue
             confidence = float(note.get("confidence", 0.0))

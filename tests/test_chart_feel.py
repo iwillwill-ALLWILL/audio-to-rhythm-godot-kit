@@ -68,6 +68,37 @@ class ChartFeelTests(unittest.TestCase):
             by_time.setdefault(float(note["time"]), []).append(int(note["lane"]))
         self.assertTrue(any(len(set(lanes)) >= 2 for lanes in by_time.values()))
 
+    def test_holds_do_not_cover_other_tap_notes(self) -> None:
+        notes = [
+            {"time": 0.0, "lane": 0, "type": "tap", "confidence": 1.0},
+            {"time": 0.5, "lane": 1, "type": "tap", "confidence": 0.3},
+            {"time": 1.0, "lane": 2, "type": "tap", "confidence": 0.2},
+            {"time": 2.0, "lane": 0, "type": "tap", "confidence": 0.1},
+        ]
+
+        enhanced = apply_playability_modifiers(
+            notes,
+            lane_count=3,
+            allow_doubles=False,
+            allow_holds=True,
+            hold_rate=0.25,
+            hold_min=0.3,
+            hold_max=1.2,
+            min_gap_s=0.1,
+        )
+
+        holds = [n for n in enhanced if n.get("type") == "hold"]
+        self.assertTrue(holds, "expected a hold to be generated")
+        for hold in holds:
+            start = float(hold["time"])
+            end = start + float(hold.get("duration", 0.0))
+            covered = [
+                n
+                for n in enhanced
+                if n is not hold and start < float(n["time"]) < end
+            ]
+            self.assertEqual(covered, [], "hold body should not contain tap notes")
+
     def test_difficulty_presets_scale_handfeel_features(self) -> None:
         self.assertEqual(PRESETS["easy"].double_rate, 0.0)
         self.assertLess(PRESETS["normal"].double_rate, PRESETS["hard"].double_rate)

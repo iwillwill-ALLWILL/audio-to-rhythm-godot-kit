@@ -54,6 +54,7 @@ def parse_args() -> argparse.Namespace:
 
 def write_target_readme(root: Path, *, song_id: str, target: str, difficulties: list[str]) -> None:
     diff_list = ", ".join(difficulties)
+    default_difficulty = "normal" if "normal" in difficulties else (difficulties[0] if difficulties else "normal")
     if target == "bundle":
         return
     write_text(
@@ -102,7 +103,7 @@ Then wire the chosen game entry point to:
 ```gdscript
 var view = preload("res://addons/rhythmkit/RhythmGameView.tscn").instantiate()
 add_child(view)
-view.load_bundle("res://levels/{song_id}", "normal")
+view.load_bundle("res://levels/{song_id}", "{default_difficulty}")
 view.start_game()
 ```
 
@@ -151,7 +152,7 @@ def main() -> int:
             keys=key_names,
             include_original=not args.no_original,
         )
-        target_info = {"target": "bundle", "bundle_dir": str(bundle_dir)}
+        target_info = {"target": "bundle", "bundle_dir": "."}
     else:
         root = out
         bundle_dir = root / "levels" / song_id
@@ -174,9 +175,9 @@ def main() -> int:
         write_target_readme(root, song_id=song_id, target=args.target, difficulties=[p.name for p in presets])
         target_info = {
             "target": args.target,
-            "project_godot": str(root / "project.godot"),
-            "bundle_dir": str(bundle_dir),
-            "addon_dir": str(root / "addons" / "rhythmkit"),
+            "project_godot": "project.godot",
+            "bundle_dir": f"levels/{song_id}",
+            "addon_dir": "addons/rhythmkit",
             "default_difficulty": default_difficulty,
         }
 

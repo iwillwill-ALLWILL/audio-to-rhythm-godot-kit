@@ -127,7 +127,7 @@ AI 还要把它接到你的游戏入口，例如：
 ## Runtime（通常一次性）
 
 ```text
-res://addons/rhythmkit/RhythmLevelLoader.gd
+res://addons/rhythmkit/RhythmBundleLoader.gd
 res://addons/rhythmkit/RhythmGameView.gd
 res://addons/rhythmkit/RhythmGameView.tscn
 ```

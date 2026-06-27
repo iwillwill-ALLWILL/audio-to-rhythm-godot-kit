@@ -1,0 +1,24 @@
+{
+  "schema": "com.rhythmkit.bundle.v1",
+  "generator": "audio-to-rhythm-godot-kit",
+  "generator_version": "0.3.0",
+  "song_id": "ready_expert_demo",
+  "title": "Ready Expert Demo",
+  "artist": "April Showers (1922 vocal recording)",
+  "audio": "audio/song.wav",
+  "original_audio": "",
+  "duration": 184.1644,
+  "bpm": 136.0,
+  "theme": "cooking",
+  "layout": {
+    "lanes": 3,
+    "keys": [
+      "A",
+      "S",
+      "D"
+    ]
+  },
+  "charts": {
+    "expert": "charts/expert.chart.json"
+  }
+}

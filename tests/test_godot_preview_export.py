@@ -26,6 +26,23 @@ def write_tiny_wav(path: Path, seconds: float = 1.0, sr: int = 44100) -> None:
 
 
 class GodotPreviewExportTests(unittest.TestCase):
+    def test_probe_duration_falls_back_to_pcm_wav_without_ffprobe(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            audio = tmp_path / "long.wav"
+            write_tiny_wav(audio, seconds=4.25)
+            scripts_dir = ROOT / "scripts"
+            if str(scripts_dir) not in sys.path:
+                sys.path.insert(0, str(scripts_dir))
+            from unittest.mock import patch
+            from write_bundle import probe_duration
+
+            with patch("write_bundle.find_ffprobe", return_value=None):
+                duration = probe_duration(audio)
+
+            self.assertIsNotNone(duration)
+            self.assertAlmostEqual(float(duration), 4.25, places=2)
+
     def test_godot_addon_target_runs_preview_scene_with_generated_bundle_loaded(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -74,6 +91,42 @@ class GodotPreviewExportTests(unittest.TestCase):
             self.assertIn('bundle_path = "res://levels/mini_preview"', runtime_text)
             self.assertIn('difficulty = "expert"', runtime_text)
             self.assertIn('auto_start = true', runtime_text)
+
+    def test_analysis_report_does_not_leak_local_absolute_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            audio = tmp_path / "mini.wav"
+            out = tmp_path / "out"
+            write_tiny_wav(audio, seconds=2.0)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    str(audio),
+                    "--target",
+                    "bundle",
+                    "--difficulty",
+                    "expert",
+                    "--title",
+                    "Mini Preview",
+                    "--song-id",
+                    "mini_preview",
+                    "--out",
+                    str(out),
+                ],
+                cwd=str(ROOT),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
+
+            report_text = (out / "analysis" / "report.json").read_text(encoding="utf-8")
+            self.assertNotIn(str(tmp_path), report_text)
+            self.assertNotIn(str(ROOT), report_text)
+            self.assertIn('"source_audio": "mini.wav"', report_text)
 
 
 if __name__ == "__main__":

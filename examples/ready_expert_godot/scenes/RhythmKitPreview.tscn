@@ -1,8 +1,0 @@
-[gd_scene load_steps=2 format=3]
-
-[ext_resource type="PackedScene" path="res://addons/rhythmkit/RhythmGameView.tscn" id="1"]
-
-[node name="RhythmKitPreview" instance=ExtResource("1")]
-bundle_path = "res://levels/ready_expert_demo"
-difficulty = "expert"
-auto_start = true

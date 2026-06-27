@@ -73,18 +73,6 @@ expert   当前最高难度，包含更多双键和长按
 
 ---
 
-## 想先试一个现成 demo？
-
-仓库里已经放了一个可直接打开的 Godot demo：
-
-```text
-examples/ready_expert_godot
-```
-
-这个 demo 使用真实人声音乐，难度是 `expert`，也就是当前内置最高难度。
-
----
-
 ## 你不需要做什么
 
 你不需要：

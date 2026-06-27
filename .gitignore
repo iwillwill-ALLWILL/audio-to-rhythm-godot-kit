@@ -8,9 +8,12 @@ venv/
 dist/*
 !dist/.gitkeep
 
-# Local test uploads and copyrighted preview snippets are not committed.
+# Local test uploads and generated demo projects are not committed.
 examples/input/*
 !examples/input/.gitkeep
+examples/ready_*_godot/
+examples/*_preview_project/
+examples/*_godot_addon/
 
 .import/
 .godot/
